@@ -18,8 +18,7 @@ import '@xyflow/react/dist/style.css';
 import { v4 as uuidv4 } from 'uuid';
 import { ImageNode } from './nodes/ImageNode';
 import { GoogleGenAI } from '@google/genai';
-
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+import { useHistory } from './HistoryContext';
 
 const nodeTypes = {
   imageNode: ImageNode,
@@ -29,7 +28,8 @@ function Flow() {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const { screenToFlowPosition } = useReactFlow();
+  const { screenToFlowPosition, getNode, getNodes, getEdges } = useReactFlow();
+  const { addRecord, updateRecord } = useHistory();
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -52,13 +52,19 @@ function Flow() {
 
   const handleGenerate = useCallback(
     async (nodeId: string, prompt: string, params?: any) => {
-      const node = nodes.find((n) => n.id === nodeId);
+      const node = getNode(nodeId);
       if (!node) return;
+
+      const nodes = getNodes();
+      const edges = getEdges();
 
       const model = params?.model || 'gemini-3.1-flash-image-preview';
       const aspectRatio = params?.aspectRatio || '1:1';
       const resolution = params?.resolution || '1K';
-      const quantity = params?.quantity || 1;
+      const isRetry = params?.isRetry === true;
+      const quantity = isRetry ? 1 : (params?.quantity || 1);
+
+      const isEmptyNode = !node.data.imageSrc;
 
       // Find connected input nodes
       const connectedEdges = edges.filter((e) => e.target === nodeId);
@@ -68,37 +74,51 @@ function Flow() {
 
       const newNodes: Node[] = [];
       const newEdges: Edge[] = [];
+      const nodesToUpdate: string[] = [];
 
-      for (let i = 0; i < quantity; i++) {
-        const newNodeId = uuidv4();
-        const newPosition = {
-          x: node.position.x + 350,
-          y: node.position.y + i * 320,
-        };
-
-        newNodes.push({
-          id: newNodeId,
-          type: 'imageNode',
-          position: newPosition,
-          data: {
-            isLoading: true,
-            prompt,
-            aspectRatio: aspectRatio.replace(':', '/'),
-            onGenerate: handleGenerate,
-          },
-        });
-
-        newEdges.push({
-          id: `e-${nodeId}-${newNodeId}`,
-          source: nodeId,
-          target: newNodeId,
-          animated: true,
-          style: { stroke: '#3b82f6', strokeWidth: 2 },
-        });
+      if (isEmptyNode) {
+        nodesToUpdate.push(nodeId);
+        for (let i = 1; i < quantity; i++) {
+          const newNodeId = uuidv4();
+          newNodes.push({
+            id: newNodeId,
+            type: 'imageNode',
+            position: { x: node.position.x + 350, y: node.position.y + i * 320 },
+            data: { isLoading: true, prompt, aspectRatio: aspectRatio.replace(':', '/'), onGenerate: handleGenerate },
+          });
+          newEdges.push({
+            id: `e-${nodeId}-${newNodeId}`,
+            source: nodeId,
+            target: newNodeId,
+            animated: true,
+            style: { stroke: '#3b82f6', strokeWidth: 2 },
+          });
+          nodesToUpdate.push(newNodeId);
+        }
+        
+        setNodes((nds) => nds.map(n => n.id === nodeId ? { ...n, data: { ...n.data, isLoading: true, error: undefined, prompt, aspectRatio: aspectRatio.replace(':', '/') } } : n).concat(newNodes));
+        setEdges((eds) => eds.concat(newEdges));
+      } else {
+        for (let i = 0; i < quantity; i++) {
+          const newNodeId = uuidv4();
+          newNodes.push({
+            id: newNodeId,
+            type: 'imageNode',
+            position: { x: node.position.x + 350, y: node.position.y + i * 320 },
+            data: { isLoading: true, prompt, aspectRatio: aspectRatio.replace(':', '/'), onGenerate: handleGenerate },
+          });
+          newEdges.push({
+            id: `e-${nodeId}-${newNodeId}`,
+            source: nodeId,
+            target: newNodeId,
+            animated: true,
+            style: { stroke: '#3b82f6', strokeWidth: 2 },
+          });
+          nodesToUpdate.push(newNodeId);
+        }
+        setNodes((nds) => nds.concat(newNodes));
+        setEdges((eds) => eds.concat(newEdges));
       }
-
-      setNodes((nds) => nds.concat(newNodes));
-      setEdges((eds) => eds.concat(newEdges));
 
       const contents: any[] = [];
         
@@ -117,7 +137,7 @@ function Flow() {
       });
 
       // Add current node's image
-      if (node.data.imageSrc) {
+      if (!isEmptyNode && node.data.imageSrc) {
         const mimeType = (node.data.imageSrc as string).match(/data:(.*?);/)?.[1] || 'image/jpeg';
         const base64Data = (node.data.imageSrc as string).split(',')[1];
         contents.push({
@@ -131,8 +151,18 @@ function Flow() {
       // Add text prompt
       contents.push({ text: prompt });
 
-      const generatePromises = newNodes.map(async (newNode) => {
+      const generatePromises = nodesToUpdate.map(async (targetNodeId) => {
+        const historyId = uuidv4();
+        addRecord({
+          id: historyId,
+          requestTime: Date.now(),
+          prompt,
+          status: 'pending',
+          isRetry,
+        });
+
         try {
+          const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
           const response = await ai.models.generateContent({
             model: model,
             contents: contents as any,
@@ -160,41 +190,60 @@ function Flow() {
 
           setNodes((nds) =>
             nds.map((n) =>
-              n.id === newNode.id
-                ? { ...n, data: { ...n.data, imageSrc: resultImageSrc, isLoading: false } }
+              n.id === targetNodeId
+                ? { ...n, data: { ...n.data, imageSrc: resultImageSrc, isLoading: false, error: undefined } }
                 : n
             )
           );
 
-          setEdges((eds) =>
-            eds.map((e) =>
-              e.id === `e-${nodeId}-${newNode.id}`
-                ? { ...e, animated: false, style: { stroke: '#ffffff', opacity: 0.4, strokeWidth: 2 } }
-                : e
-            )
-          );
+          if (targetNodeId !== nodeId) {
+            setEdges((eds) =>
+              eds.map((e) =>
+                e.id === `e-${nodeId}-${targetNodeId}`
+                  ? { ...e, animated: false, style: { stroke: '#ffffff', opacity: 0.4, strokeWidth: 2 } }
+                  : e
+              )
+            );
+          }
+
+          updateRecord(historyId, {
+            status: 'success',
+            responseTime: Date.now(),
+          });
         } catch (error) {
-          console.error(`Generation failed for node ${newNode.id}:`, error);
+          console.error(`Generation failed for node ${targetNodeId}:`, error);
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          const errorCode = (error as any).status || (error as any).code || 'UNKNOWN_ERROR';
+
           setNodes((nds) =>
             nds.map((n) =>
-              n.id === newNode.id
-                ? { ...n, data: { ...n.data, isLoading: false, prompt: 'Error generating image' } }
+              n.id === targetNodeId
+                ? { ...n, data: { ...n.data, isLoading: false, error: errorMessage } }
                 : n
             )
           );
-          setEdges((eds) =>
-            eds.map((e) =>
-              e.id === `e-${nodeId}-${newNode.id}`
-                ? { ...e, animated: false, style: { stroke: '#ef4444', strokeWidth: 2, opacity: 0.8 } }
-                : e
-            )
-          );
+          if (targetNodeId !== nodeId) {
+            setEdges((eds) =>
+              eds.map((e) =>
+                e.id === `e-${nodeId}-${targetNodeId}`
+                  ? { ...e, animated: false, style: { stroke: '#ef4444', strokeWidth: 2, opacity: 0.8 } }
+                  : e
+              )
+            );
+          }
+
+          updateRecord(historyId, {
+            status: 'error',
+            responseTime: Date.now(),
+            errorMessage,
+            errorCode: String(errorCode),
+          });
         }
       });
 
       await Promise.all(generatePromises);
     },
-    [nodes, edges]
+    [getNode, getNodes, getEdges, addRecord, updateRecord]
   );
 
   const onDragOver = useCallback((event: React.DragEvent) => {
@@ -255,6 +304,26 @@ function Flow() {
     },
     [screenToFlowPosition, handleGenerate]
   );
+
+  React.useEffect(() => {
+    const handleAddImageNode = () => {
+      const position = screenToFlowPosition({
+        x: window.innerWidth / 2,
+        y: window.innerHeight / 2,
+      });
+
+      const newNode: Node = {
+        id: uuidv4(),
+        type: 'imageNode',
+        position,
+        data: { onGenerate: handleGenerate },
+      };
+      setNodes((nds) => nds.concat(newNode));
+    };
+
+    window.addEventListener('add-image-node', handleAddImageNode);
+    return () => window.removeEventListener('add-image-node', handleAddImageNode);
+  }, [handleGenerate, screenToFlowPosition]);
 
   return (
     <div className="h-full w-full bg-[#0a0a0a]" ref={reactFlowWrapper}>

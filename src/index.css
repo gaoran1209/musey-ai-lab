@@ -1,5 +1,20 @@
 @import "tailwindcss";
 
+@theme {
+  --animate-shimmer: shimmer 2s infinite linear;
+  --animate-fade-in: fadeIn 0.5s ease-out forwards;
+  
+  @keyframes shimmer {
+    0% { transform: translateX(-100%); }
+    100% { transform: translateX(100%); }
+  }
+  
+  @keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+  }
+}
+
 @layer utilities {
   .react-flow-dark {
     --xy-edge-stroke-default: rgba(255, 255, 255, 0.2);

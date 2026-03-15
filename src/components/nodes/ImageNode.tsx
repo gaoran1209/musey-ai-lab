@@ -10,6 +10,7 @@ export type ImageNodeData = {
   isLoading?: boolean;
   prompt?: string;
   aspectRatio?: number | string;
+  error?: string;
   onGenerate?: (nodeId: string, prompt: string, params?: any) => void;
 };
 
@@ -110,7 +111,7 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!prompt.trim() || !data.imageSrc) return;
+    if (!prompt.trim() || data.isLoading) return;
 
     if (data.onGenerate) {
       data.onGenerate(id, prompt, { model, aspectRatio, resolution, quantity });
@@ -132,9 +133,9 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
       <Handle type="target" position={Position.Left} className="w-3 h-3 bg-blue-500 border-2 border-gray-900" />
       
       {/* Title */}
-      <div className="absolute -top-6 left-0 text-xs text-neutral-400 flex items-center gap-1">
-        <ImageIcon className="w-3 h-3" />
-        {data.imageSrc ? 'Image' : 'Empty Node'}
+      <div className="absolute -top-6 left-0 text-xs text-neutral-400 flex items-center gap-1 max-w-full overflow-hidden whitespace-nowrap text-ellipsis">
+        <ImageIcon className="w-3 h-3 shrink-0" />
+        <span className="truncate">{data.prompt || 'Image'}</span>
       </div>
 
       {/* Delete Button */}
@@ -173,9 +174,8 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
         }}
       >
         {data.isLoading ? (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm z-20">
-            <Loader2 className="w-8 h-8 text-blue-500 animate-spin mb-2" />
-            <span className="text-xs text-blue-400 font-medium animate-pulse">Generating...</span>
+          <div className="absolute inset-0 z-20 overflow-hidden bg-[#2A2A2A]">
+            <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
           </div>
         ) : null}
 
@@ -183,7 +183,7 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
           <img
             src={data.imageSrc}
             alt="Node content"
-            className="w-full h-full object-cover"
+            className="w-full h-full object-cover animate-fade-in"
             onLoad={(e) => {
               const img = e.target as HTMLImageElement;
               const ratio = img.naturalWidth / img.naturalHeight;
@@ -193,8 +193,34 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
             }}
           />
         ) : !data.isLoading ? (
-          <div className="absolute inset-2 flex items-center justify-center border-2 border-dashed border-white/5 rounded-lg">
-            <ImageIcon className="w-8 h-8 text-white/10" />
+          <div className="absolute inset-2 flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-lg p-4 text-center">
+            {data.error ? (
+              <>
+                <div className="w-10 h-10 rounded-full bg-red-500/10 flex items-center justify-center mb-3">
+                  <Sparkles className="w-5 h-5 text-red-400" />
+                </div>
+                <p className="text-xs text-red-400 mb-4 line-clamp-3">{data.error}</p>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (data.onGenerate) {
+                      data.onGenerate(id, data.prompt || '', {
+                        model,
+                        aspectRatio,
+                        resolution,
+                        quantity,
+                        isRetry: true
+                      });
+                    }
+                  }}
+                  className="px-4 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs rounded-full transition-colors"
+                >
+                  重试 (Retry)
+                </button>
+              </>
+            ) : (
+              <ImageIcon className="w-8 h-8 text-white/10" />
+            )}
           </div>
         ) : null}
       </div>
