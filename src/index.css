@@ -1,0 +1,11 @@
+@import "tailwindcss";
+
+@layer utilities {
+  .react-flow-dark {
+    --xy-edge-stroke-default: rgba(255, 255, 255, 0.2);
+    --xy-edge-stroke-selected: rgba(96, 165, 250, 0.8);
+    --xy-connectionline-stroke-default: rgba(255, 255, 255, 0.5);
+    --xy-handle-background-color-default: #1a1a1a;
+    --xy-handle-border-color-default: #9ca3af;
+  }
+}

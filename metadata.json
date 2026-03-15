@@ -1,0 +1,7 @@
+{
+  "name": "MUSE AI Lab",
+  "description": "A node-based AI image editing workflow using Gemini 3.1 Flash Image Preview.",
+  "requestFramePermissions": [
+    "microphone"
+  ]
+}
