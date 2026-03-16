@@ -1,12 +1,16 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Shapes, Users, Image as ImageIcon, Accessibility, LayoutTemplate, Settings, ImagePlus, Video, History, Globe, Info, Clock, CheckCircle2, XCircle, Loader2 } from 'lucide-react';
+import { Plus, Shapes, Users, Image as ImageIcon, Accessibility, LayoutTemplate, ImagePlus, Video, History, Globe, Info, Clock, CheckCircle2, XCircle, Loader2, Save } from 'lucide-react';
 import { useHistory } from './HistoryContext';
+import { getStoredGeminiApiKey, setStoredGeminiApiKey } from '../utils/geminiApiKey';
 
 export function Sidebar() {
   const [isAddMenuOpen, setIsAddMenuOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [language, setLanguage] = useState<'zh' | 'en'>('zh');
+  const [savedApiKey, setSavedApiKey] = useState('');
+  const [draftApiKey, setDraftApiKey] = useState('');
+  const [saveState, setSaveState] = useState<'idle' | 'saved'>('idle');
   
   const addMenuRef = useRef<HTMLDivElement>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
@@ -14,9 +18,40 @@ export function Sidebar() {
   
   const { history } = useHistory();
 
+  const closeAllPanels = () => {
+    setIsAddMenuOpen(false);
+    setIsUserMenuOpen(false);
+    setIsHistoryOpen(false);
+  };
+
   const handleAddImageNode = () => {
     window.dispatchEvent(new CustomEvent('add-image-node'));
     setIsAddMenuOpen(false);
+  };
+
+  const handleAddVideoNode = () => {
+    window.dispatchEvent(new CustomEvent('add-video-node'));
+    setIsAddMenuOpen(false);
+  };
+
+  useEffect(() => {
+    const savedKey = getStoredGeminiApiKey();
+    if (savedKey) {
+      setSavedApiKey(savedKey);
+      setDraftApiKey(savedKey);
+    }
+  }, []);
+
+  const handleApiKeyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDraftApiKey(e.target.value);
+    setSaveState('idle');
+  };
+
+  const handleSaveApiKey = () => {
+    const nextKey = setStoredGeminiApiKey(draftApiKey);
+    setSavedApiKey(nextKey);
+    setDraftApiKey(nextKey);
+    setSaveState('saved');
   };
 
   useEffect(() => {
@@ -35,8 +70,17 @@ export function Sidebar() {
         }
       }
     };
+
+    const handleCanvasInteraction = () => {
+      closeAllPanels();
+    };
+
     document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    window.addEventListener('close-sidebar-overlays', handleCanvasInteraction);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      window.removeEventListener('close-sidebar-overlays', handleCanvasInteraction);
+    };
   }, []);
 
   const formatTime = (timestamp: number) => {
@@ -73,12 +117,11 @@ export function Sidebar() {
                 {language === 'zh' ? '图像节点' : 'Image Node'}
               </button>
               <button 
-                disabled
-                className="flex items-center gap-2 px-3 py-2 text-sm text-neutral-400 rounded-lg cursor-not-allowed text-left"
-                title="Coming Soon"
+                onClick={handleAddVideoNode}
+                className="flex items-center gap-2 px-3 py-2 text-sm text-white hover:bg-white/10 rounded-lg transition-colors text-left"
               >
                 <Video className="w-4 h-4" />
-                {language === 'zh' ? '视频节点 (即将推出)' : 'Video Node (Coming Soon)'}
+                {language === 'zh' ? '视频节点' : 'Video Node'}
               </button>
             </div>
           )}
@@ -128,6 +171,51 @@ export function Sidebar() {
                 <History className="w-4 h-4" />
                 {language === 'zh' ? '历史记录' : 'History'}
               </button>
+
+              <div className="h-[1px] bg-white/10 my-1" />
+
+              {/* API Key Input */}
+              <div className="px-3 py-2">
+                <div className="mb-2 flex items-center justify-between">
+                  <span className="text-xs text-neutral-400">API Key</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="password"
+                    value={draftApiKey}
+                    onChange={handleApiKeyChange}
+                    placeholder="Gemini API Key..."
+                    className="min-w-0 flex-1 bg-[#1A1A1A] border border-white/10 rounded-md px-2 py-2 text-xs text-white placeholder-neutral-600 outline-none focus:border-blue-500/50 transition-colors"
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        handleSaveApiKey();
+                      }
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={handleSaveApiKey}
+                    disabled={draftApiKey.trim() === savedApiKey}
+                    className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border transition-all ${
+                      draftApiKey.trim() === savedApiKey
+                        ? 'cursor-not-allowed border-white/8 bg-white/5 text-neutral-600'
+                        : saveState === 'saved'
+                          ? 'border-emerald-500/30 bg-emerald-500/12 text-emerald-300 hover:bg-emerald-500/18'
+                          : 'border-white/10 bg-white/8 text-white hover:bg-white/14'
+                    }`}
+                    title={language === 'zh' ? '保存 API Key' : 'Save API Key'}
+                  >
+                    <Save className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+                <p className="mt-2 text-[11px] leading-relaxed text-neutral-500">
+                  {language === 'zh'
+                    ? '仅保存在当前浏览器本地，不会从部署环境自动注入。'
+                    : 'Stored only in this browser. No deployment environment key is injected.'}
+                </p>
+              </div>
+
               <div className="h-[1px] bg-white/10 my-1" />
               <div className="flex items-center gap-2 px-3 py-2 text-xs text-neutral-400">
                 <Info className="w-3.5 h-3.5" />

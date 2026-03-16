@@ -1,10 +1,10 @@
 import { GoogleGenAI } from "@google/genai";
+import { getStoredGeminiApiKey } from "../utils/geminiApiKey";
 
 export async function generateImageEdit(base64Data: string, mimeType: string, prompt: string) {
-  // Use the API key injected by the platform
-  const apiKey = process.env.GEMINI_API_KEY || (process.env as any).API_KEY;
+  const apiKey = getStoredGeminiApiKey();
   if (!apiKey) {
-    throw new Error("API Key is missing. Please select an API key.");
+    throw new Error("API Key is missing. Please enter your Gemini API key in the app.");
   }
 
   const ai = new GoogleGenAI({ apiKey });

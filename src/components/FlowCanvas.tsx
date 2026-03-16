@@ -17,12 +17,96 @@ import {
 import '@xyflow/react/dist/style.css';
 import { v4 as uuidv4 } from 'uuid';
 import { ImageNode } from './nodes/ImageNode';
+import { VideoNode } from './nodes/VideoNode';
 import { GoogleGenAI } from '@google/genai';
 import { useHistory } from './HistoryContext';
+import { ImagePlus, Video } from 'lucide-react';
+import { getStoredGeminiApiKey } from '../utils/geminiApiKey';
 
 const nodeTypes = {
   imageNode: ImageNode,
+  videoNode: VideoNode,
 };
+
+const DEFAULT_IMAGE_MODEL = 'gemini-3.1-flash-image-preview';
+const DEFAULT_VIDEO_MODEL = 'veo-3.1-generate-preview';
+const VIDEO_POLL_INTERVAL_MS = 10000;
+const VIDEO_POLL_MAX_ATTEMPTS = 60;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function dataUrlToInlineData(dataUrl: string) {
+  const mimeType = dataUrl.match(/data:(.*?);/)?.[1] || 'image/jpeg';
+  const data = dataUrl.split(',')[1];
+
+  if (!data) {
+    throw new Error('Invalid media data URL');
+  }
+
+  return {
+    data,
+    mimeType,
+  };
+}
+
+function base64ToUint8Array(base64: string) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+
+  return bytes;
+}
+
+async function videoToObjectUrl(video: any, apiKey: string) {
+  if (video?.videoBytes) {
+    const mimeType = video.mimeType || 'video/mp4';
+    const bytes = base64ToUint8Array(video.videoBytes);
+    return URL.createObjectURL(new Blob([bytes], { type: mimeType }));
+  }
+
+  if (!video?.uri) {
+    throw new Error('Video generation finished but no downloadable video was returned.');
+  }
+
+  const response = await fetch(video.uri, {
+    headers: {
+      'x-goog-api-key': apiKey,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error(`Video download failed (${response.status} ${response.statusText})`);
+  }
+
+  const blob = await response.blob();
+  return URL.createObjectURL(blob);
+}
+
+function extractErrorMessage(error: unknown) {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === 'string') {
+    return error;
+  }
+
+  return 'Unknown error';
+}
+
+function extractErrorCode(error: unknown) {
+  if (typeof error === 'object' && error !== null) {
+    const maybeError = error as Record<string, unknown>;
+    return String(maybeError.status || maybeError.code || 'UNKNOWN_ERROR');
+  }
+
+  return 'UNKNOWN_ERROR';
+}
 
 function Flow() {
   const [nodes, setNodes] = useState<Node[]>([]);
@@ -30,6 +114,8 @@ function Flow() {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
   const { screenToFlowPosition, getNode, getNodes, getEdges } = useReactFlow();
   const { addRecord, updateRecord } = useHistory();
+  const [menuPos, setMenuPos] = useState<{x: number, y: number} | null>(null);
+  const [menuFlowPos, setMenuFlowPos] = useState<{x: number, y: number} | null>(null);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -58,13 +144,16 @@ function Flow() {
       const nodes = getNodes();
       const edges = getEdges();
 
-      const model = params?.model || 'gemini-3.1-flash-image-preview';
+      const model = params?.model || (params?.targetType === 'video' ? DEFAULT_VIDEO_MODEL : DEFAULT_IMAGE_MODEL);
       const aspectRatio = params?.aspectRatio || '1:1';
       const resolution = params?.resolution || '1K';
       const isRetry = params?.isRetry === true;
       const quantity = isRetry ? 1 : (params?.quantity || 1);
+      const targetType = params?.targetType || 'image';
+      const videoDuration = params?.videoDuration || '4';
+      const generationParams = { model, aspectRatio, resolution, quantity, targetType, videoDuration };
 
-      const isEmptyNode = !node.data.imageSrc;
+      const isEmptyNode = !node.data.imageSrc && !node.data.videoSrc;
 
       // Find connected input nodes
       const connectedEdges = edges.filter((e) => e.target === nodeId);
@@ -82,9 +171,15 @@ function Flow() {
           const newNodeId = uuidv4();
           newNodes.push({
             id: newNodeId,
-            type: 'imageNode',
+            type: targetType === 'video' ? 'videoNode' : 'imageNode',
             position: { x: node.position.x + 350, y: node.position.y + i * 320 },
-            data: { isLoading: true, prompt, aspectRatio: aspectRatio.replace(':', '/'), onGenerate: handleGenerate },
+            data: {
+              isLoading: true,
+              prompt,
+              aspectRatio: aspectRatio.replace(':', '/'),
+              onGenerate: handleGenerate,
+              generationParams,
+            },
           });
           newEdges.push({
             id: `e-${nodeId}-${newNodeId}`,
@@ -96,16 +191,34 @@ function Flow() {
           nodesToUpdate.push(newNodeId);
         }
         
-        setNodes((nds) => nds.map(n => n.id === nodeId ? { ...n, data: { ...n.data, isLoading: true, error: undefined, prompt, aspectRatio: aspectRatio.replace(':', '/') } } : n).concat(newNodes));
+        setNodes((nds) => nds.map(n => n.id === nodeId ? {
+          ...n,
+          type: targetType === 'video' ? 'videoNode' : 'imageNode',
+          data: {
+            ...n.data,
+            isLoading: true,
+            error: undefined,
+            prompt,
+            aspectRatio: aspectRatio.replace(':', '/'),
+            onGenerate: handleGenerate,
+            generationParams,
+          }
+        } : n).concat(newNodes));
         setEdges((eds) => eds.concat(newEdges));
       } else {
         for (let i = 0; i < quantity; i++) {
           const newNodeId = uuidv4();
           newNodes.push({
             id: newNodeId,
-            type: 'imageNode',
+            type: targetType === 'video' ? 'videoNode' : 'imageNode',
             position: { x: node.position.x + 350, y: node.position.y + i * 320 },
-            data: { isLoading: true, prompt, aspectRatio: aspectRatio.replace(':', '/'), onGenerate: handleGenerate },
+            data: {
+              isLoading: true,
+              prompt,
+              aspectRatio: aspectRatio.replace(':', '/'),
+              onGenerate: handleGenerate,
+              generationParams,
+            },
           });
           newEdges.push({
             id: `e-${nodeId}-${newNodeId}`,
@@ -120,36 +233,22 @@ function Flow() {
         setEdges((eds) => eds.concat(newEdges));
       }
 
-      const contents: any[] = [];
+      const imageSources: string[] = [];
         
       // Add images from connected nodes
       inputNodes.forEach((n) => {
         if (n?.data?.imageSrc) {
-          const mimeType = (n.data.imageSrc as string).match(/data:(.*?);/)?.[1] || 'image/jpeg';
-          const base64Data = (n.data.imageSrc as string).split(',')[1];
-          contents.push({
-            inlineData: {
-              data: base64Data,
-              mimeType,
-            },
-          });
+          imageSources.push(n.data.imageSrc as string);
         }
       });
 
-      // Add current node's image
-      if (!isEmptyNode && node.data.imageSrc) {
-        const mimeType = (node.data.imageSrc as string).match(/data:(.*?);/)?.[1] || 'image/jpeg';
-        const base64Data = (node.data.imageSrc as string).split(',')[1];
-        contents.push({
-          inlineData: {
-            data: base64Data,
-            mimeType,
-          },
-        });
+      // Add current node's media
+      if (!isEmptyNode) {
+        let mediaSrc = node.data.imageSrc || node.data.videoSrc;
+        if (node.data.imageSrc && mediaSrc) {
+          imageSources.unshift(mediaSrc as string);
+        }
       }
-
-      // Add text prompt
-      contents.push({ text: prompt });
 
       const generatePromises = nodesToUpdate.map(async (targetNodeId) => {
         const historyId = uuidv4();
@@ -162,38 +261,100 @@ function Flow() {
         });
 
         try {
-          const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
-          const response = await ai.models.generateContent({
-            model: model,
-            contents: contents as any,
-            config: {
-              imageConfig: {
-                aspectRatio: aspectRatio,
-                imageSize: resolution,
-              },
-            },
-          });
+          const apiKey = getStoredGeminiApiKey();
+          if (!apiKey) {
+            throw new Error('Missing Gemini API key');
+          }
 
-          let resultImageSrc = '';
-          if (response.candidates && response.candidates[0]?.content?.parts) {
-            for (const part of response.candidates[0].content.parts) {
-              if (part.inlineData) {
-                resultImageSrc = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
-                break;
+          const ai = new GoogleGenAI({ apiKey });
+          let resultMediaSrc = '';
+
+          if (targetType === 'video') {
+            let operation = await ai.models.generateVideos({
+              model,
+              prompt,
+              ...(imageSources[0] ? {
+                image: {
+                  imageBytes: dataUrlToInlineData(imageSources[0]).data,
+                  mimeType: dataUrlToInlineData(imageSources[0]).mimeType,
+                },
+              } : {}),
+              config: {
+                numberOfVideos: 1,
+                aspectRatio,
+                resolution,
+                durationSeconds: Number(videoDuration),
+              },
+            });
+
+            let attempts = 0;
+            while (!operation.done) {
+              attempts += 1;
+              if (attempts > VIDEO_POLL_MAX_ATTEMPTS) {
+                throw new Error('Video generation timed out. Please try again.');
+              }
+
+              await sleep(VIDEO_POLL_INTERVAL_MS);
+              operation = await ai.operations.getVideosOperation({ operation });
+            }
+
+            if (operation.error) {
+              const operationError =
+                typeof operation.error.message === 'string'
+                  ? operation.error.message
+                  : JSON.stringify(operation.error);
+              throw new Error(operationError || 'Video generation failed.');
+            }
+
+            const generatedVideo = operation.response?.generatedVideos?.[0]?.video;
+            resultMediaSrc = await videoToObjectUrl(generatedVideo, apiKey);
+          } else {
+            const contents: any[] = imageSources.map((imageSrc) => ({
+              inlineData: dataUrlToInlineData(imageSrc),
+            }));
+            contents.push({ text: prompt });
+
+            const response = await ai.models.generateContent({
+              model,
+              contents: contents as any,
+              config: {
+                imageConfig: {
+                  aspectRatio,
+                  imageSize: resolution,
+                }
+              },
+            });
+
+            if (response.candidates && response.candidates[0]?.content?.parts) {
+              for (const part of response.candidates[0].content.parts) {
+                if (part.inlineData) {
+                  resultMediaSrc = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+                  break;
+                }
               }
             }
           }
 
-          if (!resultImageSrc) {
-            throw new Error('No image generated');
+          if (!resultMediaSrc) {
+            throw new Error(`No ${targetType} generated`);
           }
 
           setNodes((nds) =>
-            nds.map((n) =>
-              n.id === targetNodeId
-                ? { ...n, data: { ...n.data, imageSrc: resultImageSrc, isLoading: false, error: undefined } }
-                : n
-            )
+            nds.map((n) => {
+              if (n.id === targetNodeId) {
+                const newData = { ...n.data, isLoading: false, error: undefined };
+                if (targetType === 'video') {
+                  if (typeof n.data.videoSrc === 'string' && n.data.videoSrc.startsWith('blob:')) {
+                    URL.revokeObjectURL(n.data.videoSrc);
+                  }
+                  newData.videoSrc = resultMediaSrc;
+                } else {
+                  newData.imageSrc = resultMediaSrc;
+                }
+                return { ...n, data: newData };
+              }
+              return n;
+            })
           );
 
           if (targetNodeId !== nodeId) {
@@ -212,8 +373,8 @@ function Flow() {
           });
         } catch (error) {
           console.error(`Generation failed for node ${targetNodeId}:`, error);
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          const errorCode = (error as any).status || (error as any).code || 'UNKNOWN_ERROR';
+          const errorMessage = extractErrorMessage(error);
+          const errorCode = extractErrorCode(error);
 
           setNodes((nds) =>
             nds.map((n) =>
@@ -284,25 +445,17 @@ function Flow() {
 
   const onPaneClick = useCallback(
     (event: React.MouseEvent) => {
+      window.dispatchEvent(new Event('close-sidebar-overlays'));
       const now = Date.now();
       if (now - lastClickTime.current < 300) {
-        const position = screenToFlowPosition({
-          x: event.clientX,
-          y: event.clientY,
-        });
-
-        const newNode: Node = {
-          id: uuidv4(),
-          type: 'imageNode',
-          position,
-          data: { onGenerate: handleGenerate }, // Empty image object
-        };
-
-        setNodes((nds) => nds.concat(newNode));
+        setMenuPos({ x: event.clientX, y: event.clientY });
+        setMenuFlowPos(screenToFlowPosition({ x: event.clientX, y: event.clientY }));
+      } else {
+        setMenuPos(null);
       }
       lastClickTime.current = now;
     },
-    [screenToFlowPosition, handleGenerate]
+    [screenToFlowPosition]
   );
 
   React.useEffect(() => {
@@ -321,8 +474,27 @@ function Flow() {
       setNodes((nds) => nds.concat(newNode));
     };
 
+    const handleAddVideoNode = () => {
+      const position = screenToFlowPosition({
+        x: window.innerWidth / 2 + 50,
+        y: window.innerHeight / 2 + 50,
+      });
+
+      const newNode: Node = {
+        id: uuidv4(),
+        type: 'videoNode',
+        position,
+        data: { onGenerate: handleGenerate },
+      };
+      setNodes((nds) => nds.concat(newNode));
+    };
+
     window.addEventListener('add-image-node', handleAddImageNode);
-    return () => window.removeEventListener('add-image-node', handleAddImageNode);
+    window.addEventListener('add-video-node', handleAddVideoNode);
+    return () => {
+      window.removeEventListener('add-image-node', handleAddImageNode);
+      window.removeEventListener('add-video-node', handleAddVideoNode);
+    };
   }, [handleGenerate, screenToFlowPosition]);
 
   return (
@@ -338,12 +510,39 @@ function Flow() {
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
         fitView
+        fitViewOptions={{ padding: 1.2, minZoom: 0.2, maxZoom: 1 }}
         colorMode="dark"
         className="react-flow-dark"
       >
         <Background color="#ffffff" gap={32} size={1} opacity={0.05} />
         <Controls className="!bg-[#141414] !border-white/10 !fill-white/70 shadow-2xl" />
       </ReactFlow>
+
+      {menuPos && (
+      <div
+          className="absolute z-50 bg-[#1A1A1A] border border-white/10 rounded-xl shadow-2xl overflow-hidden flex flex-col min-w-[160px] animate-fade-in"
+          style={{ left: menuPos.x, top: menuPos.y }}
+        >
+          <button
+            className="px-4 py-3 text-sm text-white hover:bg-white/10 text-left flex items-center gap-3 transition-colors border-b border-white/5"
+            onClick={() => {
+              setNodes(nds => nds.concat({ id: uuidv4(), type: 'imageNode', position: menuFlowPos!, data: { onGenerate: handleGenerate } }));
+              setMenuPos(null);
+            }}
+          >
+            <ImagePlus className="w-4 h-4 text-blue-400" /> 图像节点 Image Node
+          </button>
+          <button
+            className="px-4 py-3 text-sm text-white hover:bg-white/10 text-left flex items-center gap-3 transition-colors"
+            onClick={() => {
+              setNodes(nds => nds.concat({ id: uuidv4(), type: 'videoNode', position: menuFlowPos!, data: { onGenerate: handleGenerate } }));
+              setMenuPos(null);
+            }}
+          >
+            <Video className="w-4 h-4 text-emerald-400" /> 视频节点 Video Node
+          </button>
+        </div>
+      )}
     </div>
   );
 }
