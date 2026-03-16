@@ -1,9 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Handle, Position, NodeProps, Node, useReactFlow } from '@xyflow/react';
-import { Loader2, UploadCloud, Send, Mic, Sparkles, Layout, Image as ImageIcon, Trash2 } from 'lucide-react';
+import { UploadCloud, Send, Mic, Sparkles, Layout, Image as ImageIcon, Trash2, Download, Video as VideoIcon, Clock, Sparkle, Layers3 } from 'lucide-react';
 import clsx from 'clsx';
-import { twMerge } from 'tailwind-merge';
-import { v4 as uuidv4 } from 'uuid';
 
 export type ImageNodeData = {
   imageSrc?: string;
@@ -11,6 +9,7 @@ export type ImageNodeData = {
   prompt?: string;
   aspectRatio?: number | string;
   error?: string;
+  generationParams?: any;
   onGenerate?: (nodeId: string, prompt: string, params?: any) => void;
 };
 
@@ -29,6 +28,22 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
   const [aspectRatio, setAspectRatio] = useState('3:4');
   const [resolution, setResolution] = useState('2K');
   const [quantity, setQuantity] = useState(1);
+  const [targetType, setTargetType] = useState<'image' | 'video'>('image');
+  const [videoDuration, setVideoDuration] = useState('4');
+
+  // Sync state when type changes
+  useEffect(() => {
+    if (targetType === 'video') {
+      setModel('veo-3.1-generate-preview');
+      setAspectRatio('9:16');
+      setResolution('720p');
+      setQuantity(1);
+    } else {
+      setModel('gemini-3.1-flash-image-preview');
+      setAspectRatio('3:4');
+      setResolution('2K');
+    }
+  }, [targetType]);
 
   useEffect(() => {
     promptRef.current = prompt;
@@ -114,7 +129,7 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
     if (!prompt.trim() || data.isLoading) return;
 
     if (data.onGenerate) {
-      data.onGenerate(id, prompt, { model, aspectRatio, resolution, quantity });
+      data.onGenerate(id, prompt, { model, aspectRatio, resolution, quantity, targetType, videoDuration });
       setPrompt('');
     }
   };
@@ -124,6 +139,17 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
     setNodes((nds) => nds.filter((n) => n.id !== id));
     setEdges((eds) => eds.filter((edge) => edge.source !== id && edge.target !== id));
   }, [id, setNodes, setEdges]);
+
+  const handleDownload = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!data.imageSrc) return;
+    const a = document.createElement('a');
+    a.href = data.imageSrc;
+    a.download = `image-${id}.jpg`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }, [data.imageSrc, id]);
 
   return (
     <div className={clsx(
@@ -138,15 +164,26 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
         <span className="truncate">{data.prompt || 'Image'}</span>
       </div>
 
-      {/* Delete Button */}
+      {/* Delete and Download Buttons */}
       {selected && (
-        <button
-          onClick={handleDelete}
-          className="absolute -top-3 -right-3 bg-red-500/80 hover:bg-red-500 text-white p-1.5 rounded-full shadow-lg z-50 transition-colors border border-white/10"
-          title="Delete Node"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
+        <div className="absolute -top-3 -right-3 flex gap-2 z-50">
+          {data.imageSrc && !data.isLoading && (
+            <button
+              onClick={handleDownload}
+              className="bg-white/10 hover:bg-white/20 text-white p-1.5 rounded-full shadow-lg transition-colors border border-white/10 backdrop-blur-md"
+              title="Download Image"
+            >
+              <Download className="w-3.5 h-3.5" />
+            </button>
+          )}
+          <button
+            onClick={handleDelete}
+            className="bg-white/10 hover:bg-white/20 p-1.5 rounded-full shadow-lg transition-colors border border-white/10 backdrop-blur-md"
+            title="Delete Node"
+          >
+            <Trash2 className="w-3.5 h-3.5 text-red-500" />
+          </button>
+        </div>
       )}
 
       {/* Floating Upload Button for Empty State */}
@@ -209,6 +246,8 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
                         aspectRatio,
                         resolution,
                         quantity,
+                        targetType,
+                        videoDuration,
                         isRetry: true
                       });
                     }
@@ -227,79 +266,155 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
 
       {/* Floating Input Panel */}
       {selected && (
-        <div className="absolute top-[calc(100%+24px)] left-1/2 -translate-x-1/2 w-[420px] bg-[#1C1C1C] rounded-2xl p-4 shadow-2xl border border-white/10 z-50 cursor-default" onClick={e => e.stopPropagation()}>
-          <textarea
-            ref={inputRef}
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            placeholder="描述任何你想要生成的内容"
-            className="w-full bg-transparent text-sm text-white placeholder-neutral-500 resize-none outline-none min-h-[60px]"
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleGenerate(e);
-              }
-              e.stopPropagation();
-            }}
-          />
-          
-          <div className="flex items-center justify-between mt-4 text-xs text-neutral-400">
-            <div className="flex items-center gap-2">
-              {/* Model Selector */}
-              <div className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors border border-white/5">
-                <Sparkles className="w-3.5 h-3.5" />
-                <select 
-                  value={model} 
-                  onChange={e => setModel(e.target.value)} 
-                  className="bg-transparent outline-none cursor-pointer appearance-none text-white"
-                >
-                  <option value="gemini-3.1-flash-image-preview" className="bg-[#1C1C1C]">Banana 2</option>
-                  <option value="gemini-2.5-flash-image" className="bg-[#1C1C1C]">Banana 1</option>
-                </select>
-              </div>
-              
-              {/* AR & Res Selector */}
-              <div className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors border border-white/5">
-                <Layout className="w-3.5 h-3.5" />
-                <select 
-                  value={aspectRatio} 
-                  onChange={e => setAspectRatio(e.target.value)} 
-                  className="bg-transparent outline-none cursor-pointer appearance-none text-white"
-                >
-                  <option value="1:1" className="bg-[#1C1C1C]">1:1</option>
-                  <option value="3:4" className="bg-[#1C1C1C]">3:4</option>
-                  <option value="4:3" className="bg-[#1C1C1C]">4:3</option>
-                  <option value="9:16" className="bg-[#1C1C1C]">9:16</option>
-                  <option value="16:9" className="bg-[#1C1C1C]">16:9</option>
-                </select>
-                <span className="text-neutral-600">·</span>
-                <select 
-                  value={resolution} 
-                  onChange={e => setResolution(e.target.value)} 
-                  className="bg-transparent outline-none cursor-pointer appearance-none text-white"
-                >
-                  <option value="1K" className="bg-[#1C1C1C]">1K</option>
-                  <option value="2K" className="bg-[#1C1C1C]">2K</option>
-                  <option value="4K" className="bg-[#1C1C1C]">4K</option>
-                </select>
+        <div
+          className="absolute top-[calc(100%+24px)] left-1/2 z-50 flex w-[min(620px,calc(100vw-3rem))] -translate-x-1/2 cursor-default flex-col gap-3 rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(36,36,40,0.96),rgba(20,20,24,0.92))] p-4 shadow-[0_22px_80px_rgba(0,0,0,0.42)] backdrop-blur-3xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-stretch gap-3">
+            <textarea
+              ref={inputRef}
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="描述任何你想要生成的内容"
+              className="min-h-[108px] flex-1 resize-none rounded-[24px] border border-white/8 bg-black/25 px-5 py-4 text-[15px] leading-7 text-white outline-none transition-colors placeholder:text-neutral-500 focus:border-white/18"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                  e.preventDefault();
+                  handleGenerate(e);
+                }
+                e.stopPropagation();
+              }}
+            />
+          </div>
+
+          <div className="flex items-center gap-3 text-xs text-neutral-300">
+            <div className="min-w-0 flex-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="flex min-w-max items-center gap-2 pr-1">
+                <div className="flex items-center gap-1 rounded-full border border-white/10 bg-black/20 p-1">
+                  <button
+                    type="button"
+                    onClick={() => setTargetType('image')}
+                    className={clsx(
+                      "inline-flex items-center justify-center rounded-full px-3 py-2 text-xs font-medium transition-all",
+                      targetType === 'image' ? "bg-white text-black shadow-sm" : "text-neutral-300 hover:bg-white/8 hover:text-white"
+                    )}
+                    title="Image"
+                  >
+                    <ImageIcon className="h-3.5 w-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTargetType('video')}
+                    className={clsx(
+                      "inline-flex items-center justify-center rounded-full px-3 py-2 text-xs font-medium transition-all",
+                      targetType === 'video' ? "bg-white text-black shadow-sm" : "text-neutral-300 hover:bg-white/8 hover:text-white"
+                    )}
+                    title="Video"
+                  >
+                    <VideoIcon className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                <div className="flex items-center gap-1.5 rounded-full border border-white/8 bg-white/6 px-3 py-2 backdrop-blur-sm transition-colors hover:bg-white/10">
+                  <Sparkle className="h-3.5 w-3.5 text-neutral-300" />
+                  <select
+                    value={model}
+                    onChange={e => setModel(e.target.value)}
+                    className="bg-transparent text-xs text-white outline-none cursor-pointer appearance-none disabled:opacity-50"
+                    disabled={targetType === 'video'}
+                  >
+                    {targetType === 'video' ? (
+                      <option value="veo-3.1-generate-preview" className="bg-[#1C1C1C]">Veo 3.1 Preview</option>
+                    ) : (
+                      <>
+                        <option value="gemini-3.1-flash-image-preview" className="bg-[#1C1C1C]">Gemini 3.1 Flash</option>
+                        <option value="gemini-2.5-flash-image" className="bg-[#1C1C1C]">Gemini 2.5 Flash</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-1.5 rounded-full border border-white/8 bg-white/6 px-3 py-2 backdrop-blur-sm transition-colors hover:bg-white/10">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  <select
+                    value={aspectRatio}
+                    onChange={e => setAspectRatio(e.target.value)}
+                    className="bg-transparent text-xs text-white outline-none cursor-pointer appearance-none"
+                  >
+                    {targetType === 'video' ? (
+                      <>
+                        <option value="9:16" className="bg-[#1C1C1C]">9:16</option>
+                        <option value="16:9" className="bg-[#1C1C1C]">16:9</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="1:1" className="bg-[#1C1C1C]">1:1</option>
+                        <option value="3:4" className="bg-[#1C1C1C]">3:4</option>
+                        <option value="4:3" className="bg-[#1C1C1C]">4:3</option>
+                        <option value="9:16" className="bg-[#1C1C1C]">9:16</option>
+                        <option value="16:9" className="bg-[#1C1C1C]">16:9</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+
+                <div className="flex items-center gap-1.5 rounded-full border border-white/8 bg-white/6 px-3 py-2 backdrop-blur-sm transition-colors hover:bg-white/10">
+                  <Layout className="w-3.5 h-3.5" />
+                  <select
+                    value={resolution}
+                    onChange={e => setResolution(e.target.value)}
+                    className="bg-transparent text-xs text-white outline-none cursor-pointer appearance-none"
+                  >
+                    {targetType === 'video' ? (
+                      <>
+                        <option value="720p" className="bg-[#1C1C1C]">720p</option>
+                        <option value="1080p" className="bg-[#1C1C1C]">1080p</option>
+                        <option value="4K" className="bg-[#1C1C1C]">4K</option>
+                      </>
+                    ) : (
+                      <>
+                        <option value="1K" className="bg-[#1C1C1C]">1K</option>
+                        <option value="2K" className="bg-[#1C1C1C]">2K</option>
+                        <option value="4K" className="bg-[#1C1C1C]">4K</option>
+                      </>
+                    )}
+                  </select>
+                </div>
+
+                {targetType === 'video' && (
+                  <div className="flex items-center gap-1.5 rounded-full border border-white/8 bg-white/6 px-3 py-2 backdrop-blur-sm transition-colors hover:bg-white/10">
+                    <Clock className="w-3.5 h-3.5" />
+                    <select
+                      value={videoDuration}
+                      onChange={e => setVideoDuration(e.target.value)}
+                      className="bg-transparent text-xs text-white outline-none cursor-pointer appearance-none"
+                    >
+                      <option value="4" className="bg-[#1C1C1C]">4s</option>
+                      <option value="6" className="bg-[#1C1C1C]">6s</option>
+                      <option value="8" className="bg-[#1C1C1C]">8s</option>
+                    </select>
+                  </div>
+                )}
+
+                {targetType === 'image' && (
+                  <div className="flex items-center gap-1.5 rounded-full border border-white/8 bg-white/6 px-3 py-2 backdrop-blur-sm transition-colors hover:bg-white/10">
+                    <Layers3 className="h-3.5 w-3.5 text-neutral-300" />
+                    <select
+                      value={quantity}
+                      onChange={e => setQuantity(Number(e.target.value))}
+                      className="bg-transparent text-xs text-white outline-none cursor-pointer appearance-none"
+                    >
+                      <option value={1} className="bg-[#1C1C1C]">1x</option>
+                      <option value={2} className="bg-[#1C1C1C]">2x</option>
+                      <option value={3} className="bg-[#1C1C1C]">3x</option>
+                      <option value={4} className="bg-[#1C1C1C]">4x</option>
+                    </select>
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 px-2.5 py-1.5 rounded-lg cursor-pointer transition-colors border border-white/5">
-                <select 
-                  value={quantity} 
-                  onChange={e => setQuantity(Number(e.target.value))} 
-                  className="bg-transparent outline-none cursor-pointer appearance-none text-white text-xs"
-                >
-                  <option value={1} className="bg-[#1C1C1C]">1x</option>
-                  <option value={2} className="bg-[#1C1C1C]">2x</option>
-                  <option value={3} className="bg-[#1C1C1C]">3x</option>
-                  <option value={4} className="bg-[#1C1C1C]">4x</option>
-                </select>
-              </div>
-              
-              {/* Voice Input Button */}
+            <div className="flex shrink-0 items-center gap-2">
               <button
                 type="button"
                 onMouseDown={startRecording}
@@ -308,26 +423,27 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
                 onTouchStart={startRecording}
                 onTouchEnd={stopRecording}
                 className={clsx(
-                  "flex h-8 w-8 items-center justify-center rounded-full transition-all border border-white/5",
-                  isRecording ? "bg-red-500/80 text-white animate-pulse" : "bg-white/5 text-neutral-400 hover:text-white hover:bg-white/10"
+                  "flex h-10 w-10 items-center justify-center rounded-full border transition-all",
+                  isRecording
+                    ? "border-white/16 bg-white/14 text-white shadow-[0_10px_30px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.16)] animate-pulse"
+                    : "border-white/10 bg-white/6 text-white/80 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)] hover:border-white/16 hover:bg-white/10 hover:text-white"
                 )}
                 title="Hold to speak"
               >
-                <Mic className="h-4 w-4" />
+                <Mic className="h-4.5 w-4.5" />
               </button>
 
-              {/* Generate Button */}
               <button
                 onClick={handleGenerate}
                 disabled={!prompt.trim() || data.isLoading}
                 className={clsx(
-                  "flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-all font-medium",
+                  "flex h-10 w-10 items-center justify-center rounded-full border transition-all",
                   prompt.trim() && !data.isLoading
-                    ? "bg-white/10 text-white hover:bg-white/20 border border-white/10"
-                    : "bg-white/5 text-neutral-600 border border-transparent cursor-not-allowed"
+                    ? "border-white/70 bg-white text-black shadow-[0_12px_32px_rgba(255,255,255,0.16),inset_0_1px_0_rgba(255,255,255,0.9)] hover:scale-[1.03] hover:bg-neutral-100"
+                    : "cursor-not-allowed border-white/8 bg-white/5 text-neutral-600"
                 )}
               >
-                <Send className="w-3.5 h-3.5" />
+                <Send className="h-4.5 w-4.5" />
               </button>
             </div>
           </div>
