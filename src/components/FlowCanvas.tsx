@@ -16,7 +16,7 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { v4 as uuidv4 } from 'uuid';
-import { ImageNode } from './nodes/ImageNode';
+import { ImageNode, type ReferenceImageOption, type LinkedImageDirection } from './nodes/ImageNode';
 import { VideoNode } from './nodes/VideoNode';
 import { GoogleGenAI } from '@google/genai';
 import { useHistory } from './HistoryContext';
@@ -28,10 +28,11 @@ const nodeTypes = {
   videoNode: VideoNode,
 };
 
-const DEFAULT_IMAGE_MODEL = 'gemini-3.1-flash-image-preview';
+const DEFAULT_IMAGE_MODEL = 'gemini-3.1-image-flash-preview';
 const DEFAULT_VIDEO_MODEL = 'veo-3.1-generate-preview';
 const VIDEO_POLL_INTERVAL_MS = 10000;
 const VIDEO_POLL_MAX_ATTEMPTS = 60;
+const REFERENCE_IMAGE_LIMIT = 6;
 
 function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -108,6 +109,44 @@ function extractErrorCode(error: unknown) {
   return 'UNKNOWN_ERROR';
 }
 
+function compareNodePositions(a: Node, b: Node) {
+  if (a.position.y !== b.position.y) {
+    return a.position.y - b.position.y;
+  }
+
+  if (a.position.x !== b.position.x) {
+    return a.position.x - b.position.x;
+  }
+
+  return a.id.localeCompare(b.id);
+}
+
+function getReferenceImages(nodeId: string, nodes: Node[], edges: Edge[]): ReferenceImageOption[] {
+  const nodeMap = new Map(nodes.map((node) => [node.id, node]));
+
+  return edges
+    .filter((edge) => edge.target === nodeId)
+    .map((edge) => nodeMap.get(edge.source))
+    .filter((node): node is Node => Boolean(node?.data?.imageSrc))
+    .sort(compareNodePositions)
+    .slice(0, REFERENCE_IMAGE_LIMIT)
+    .map((node, index) => ({
+      nodeId: node.id,
+      imageSrc: node.data.imageSrc as string,
+      label: `Image ${index + 1}`,
+      prompt: typeof node.data.prompt === 'string' ? node.data.prompt : undefined,
+    }));
+}
+
+function createImageNode(position: { x: number; y: number }, onGenerate: (nodeId: string, prompt: string, params?: any) => void): Node {
+  return {
+    id: uuidv4(),
+    type: 'imageNode',
+    position,
+    data: { onGenerate },
+  };
+}
+
 function Flow() {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
@@ -154,12 +193,7 @@ function Flow() {
       const generationParams = { model, aspectRatio, resolution, quantity, targetType, videoDuration };
 
       const isEmptyNode = !node.data.imageSrc && !node.data.videoSrc;
-
-      // Find connected input nodes
-      const connectedEdges = edges.filter((e) => e.target === nodeId);
-      const inputNodes = connectedEdges
-        .map((e) => nodes.find((n) => n.id === e.source))
-        .filter((n) => n?.data?.imageSrc);
+      const referenceImages = getReferenceImages(nodeId, nodes, edges);
 
       const newNodes: Node[] = [];
       const newEdges: Edge[] = [];
@@ -233,21 +267,9 @@ function Flow() {
         setEdges((eds) => eds.concat(newEdges));
       }
 
-      const imageSources: string[] = [];
-        
-      // Add images from connected nodes
-      inputNodes.forEach((n) => {
-        if (n?.data?.imageSrc) {
-          imageSources.push(n.data.imageSrc as string);
-        }
-      });
-
-      // Add current node's media
-      if (!isEmptyNode) {
-        let mediaSrc = node.data.imageSrc || node.data.videoSrc;
-        if (node.data.imageSrc && mediaSrc) {
-          imageSources.unshift(mediaSrc as string);
-        }
+      const imageSources = referenceImages.map((image) => image.imageSrc);
+      if (!imageSources.length && !isEmptyNode && node.data.imageSrc) {
+        imageSources.push(node.data.imageSrc as string);
       }
 
       const generatePromises = nodesToUpdate.map(async (targetNodeId) => {
@@ -407,6 +429,34 @@ function Flow() {
     [getNode, getNodes, getEdges, addRecord, updateRecord]
   );
 
+  const handleCreateLinkedImageNode = useCallback(
+    (nodeId: string, direction: LinkedImageDirection) => {
+      const currentNode = getNode(nodeId);
+      if (!currentNode) return;
+
+      const relatedEdges = direction === 'input'
+        ? edges.filter((edge) => edge.target === nodeId)
+        : edges.filter((edge) => edge.source === nodeId);
+      const verticalOffset = relatedEdges.length * 36;
+      const position = {
+        x: currentNode.position.x + (direction === 'input' ? -350 : 350),
+        y: currentNode.position.y + verticalOffset,
+      };
+      const newNode = createImageNode(position, handleGenerate);
+      const newEdge: Edge = {
+        id: `e-${direction === 'input' ? newNode.id : nodeId}-${direction === 'input' ? nodeId : newNode.id}`,
+        source: direction === 'input' ? newNode.id : nodeId,
+        target: direction === 'input' ? nodeId : newNode.id,
+        animated: true,
+        style: { stroke: '#ffffff', opacity: 0.5, strokeWidth: 2 },
+      };
+
+      setNodes((nds) => nds.concat(newNode));
+      setEdges((eds) => eds.concat(newEdge));
+    },
+    [edges, getNode, handleGenerate]
+  );
+
   const onDragOver = useCallback((event: React.DragEvent) => {
     event.preventDefault();
     event.dataTransfer.dropEffect = 'copy';
@@ -464,14 +514,7 @@ function Flow() {
         x: window.innerWidth / 2,
         y: window.innerHeight / 2,
       });
-
-      const newNode: Node = {
-        id: uuidv4(),
-        type: 'imageNode',
-        position,
-        data: { onGenerate: handleGenerate },
-      };
-      setNodes((nds) => nds.concat(newNode));
+      setNodes((nds) => nds.concat(createImageNode(position, handleGenerate)));
     };
 
     const handleAddVideoNode = () => {
@@ -497,10 +540,36 @@ function Flow() {
     };
   }, [handleGenerate, screenToFlowPosition]);
 
+  const nodesWithDerivedData = nodes.map((node) => {
+    if (node.type === 'imageNode') {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          onGenerate: handleGenerate,
+          referenceImages: getReferenceImages(node.id, nodes, edges),
+          onCreateLinkedImageNode: handleCreateLinkedImageNode,
+        },
+      };
+    }
+
+    if (node.type === 'videoNode') {
+      return {
+        ...node,
+        data: {
+          ...node.data,
+          onGenerate: handleGenerate,
+        },
+      };
+    }
+
+    return node;
+  });
+
   return (
     <div className="h-full w-full bg-[#0a0a0a]" ref={reactFlowWrapper}>
       <ReactFlow
-        nodes={nodes}
+        nodes={nodesWithDerivedData}
         edges={edges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
@@ -526,7 +595,7 @@ function Flow() {
           <button
             className="px-4 py-3 text-sm text-white hover:bg-white/10 text-left flex items-center gap-3 transition-colors border-b border-white/5"
             onClick={() => {
-              setNodes(nds => nds.concat({ id: uuidv4(), type: 'imageNode', position: menuFlowPos!, data: { onGenerate: handleGenerate } }));
+              setNodes((nds) => nds.concat(createImageNode(menuFlowPos!, handleGenerate)));
               setMenuPos(null);
             }}
           >

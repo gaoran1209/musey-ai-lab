@@ -24,7 +24,7 @@ export default function App() {
 
           <div className="flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-2 backdrop-blur-md">
             <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
-            <span className="text-sm font-medium text-neutral-300">Gemini 3.1 Flash</span>
+            <span className="text-sm font-medium text-neutral-300">Nano Banana 2</span>
           </div>
         </header>
 

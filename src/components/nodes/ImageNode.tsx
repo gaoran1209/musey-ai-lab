@@ -1,7 +1,17 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Handle, Position, NodeProps, Node, useReactFlow } from '@xyflow/react';
-import { UploadCloud, Send, Mic, Sparkles, Layout, Image as ImageIcon, Trash2, Download, Video as VideoIcon, Clock, Sparkle, Layers3 } from 'lucide-react';
+import { UploadCloud, Send, Mic, Sparkles, Layout, Image as ImageIcon, Trash2, Download, Video as VideoIcon, Clock, Sparkle, Layers3, X, Plus } from 'lucide-react';
 import clsx from 'clsx';
+import { createPortal } from 'react-dom';
+
+export type LinkedImageDirection = 'input' | 'output';
+
+export type ReferenceImageOption = {
+  nodeId: string;
+  imageSrc: string;
+  label: string;
+  prompt?: string;
+};
 
 export type ImageNodeData = {
   imageSrc?: string;
@@ -10,26 +20,32 @@ export type ImageNodeData = {
   aspectRatio?: number | string;
   error?: string;
   generationParams?: any;
+  referenceImages?: ReferenceImageOption[];
   onGenerate?: (nodeId: string, prompt: string, params?: any) => void;
+  onCreateLinkedImageNode?: (nodeId: string, direction: LinkedImageDirection) => void;
 };
 
 export type ImageNodeType = Node<ImageNodeData, 'imageNode'>;
 
 export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
-  const { setNodes, setEdges, getNodes, updateNodeData } = useReactFlow();
+  const { setNodes, setEdges, updateNodeData } = useReactFlow();
   const [prompt, setPrompt] = useState('');
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<any>(null);
   const promptRef = useRef(prompt);
   const basePromptRef = useRef('');
+  const [mentionState, setMentionState] = useState<{ start: number; end: number; query: string } | null>(null);
+  const [activeMentionIndex, setActiveMentionIndex] = useState(0);
 
-  const [model, setModel] = useState('gemini-3.1-flash-image-preview');
+  const [model, setModel] = useState('gemini-3.1-image-flash-preview');
   const [aspectRatio, setAspectRatio] = useState('3:4');
   const [resolution, setResolution] = useState('2K');
   const [quantity, setQuantity] = useState(1);
   const [targetType, setTargetType] = useState<'image' | 'video'>('image');
   const [videoDuration, setVideoDuration] = useState('4');
+  const referenceImages = data.referenceImages || [];
 
   // Sync state when type changes
   useEffect(() => {
@@ -39,7 +55,7 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
       setResolution('720p');
       setQuantity(1);
     } else {
-      setModel('gemini-3.1-flash-image-preview');
+      setModel('gemini-3.1-image-flash-preview');
       setAspectRatio('3:4');
       setResolution('2K');
     }
@@ -48,6 +64,13 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
   useEffect(() => {
     promptRef.current = prompt;
   }, [prompt]);
+
+  useEffect(() => {
+    if (!selected) {
+      setMentionState(null);
+      setActiveMentionIndex(0);
+    }
+  }, [selected]);
 
   const startRecording = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     e.preventDefault();
@@ -109,6 +132,25 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
     }
   }, [selected, data.imageSrc, data.isLoading]);
 
+  useEffect(() => {
+    if (!isPreviewOpen) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsPreviewOpen(false);
+      }
+    };
+
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    window.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [isPreviewOpen]);
+
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -134,6 +176,58 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
     }
   };
 
+  const syncMentionState = useCallback((nextPrompt: string, caretPosition: number) => {
+    if (!referenceImages.length) {
+      setMentionState(null);
+      setActiveMentionIndex(0);
+      return;
+    }
+
+    const beforeCaret = nextPrompt.slice(0, caretPosition);
+    const match = beforeCaret.match(/@([^\s@]*)$/);
+    if (!match) {
+      setMentionState(null);
+      setActiveMentionIndex(0);
+      return;
+    }
+
+    setMentionState({
+      start: caretPosition - match[0].length,
+      end: caretPosition,
+      query: match[1],
+    });
+    setActiveMentionIndex(0);
+  }, [referenceImages.length]);
+
+  const filteredReferenceImages = useMemo(() => {
+    if (!mentionState) return referenceImages;
+    const query = mentionState.query.trim().toLowerCase();
+    if (!query) return referenceImages;
+
+    return referenceImages.filter((reference) => {
+      const haystack = `${reference.label} ${reference.prompt || ''}`.toLowerCase();
+      return haystack.includes(query);
+    });
+  }, [mentionState, referenceImages]);
+
+  const insertReference = useCallback((reference: ReferenceImageOption) => {
+    if (!mentionState) return;
+
+    const replacement = reference.label;
+    const nextPrompt =
+      `${prompt.slice(0, mentionState.start)}${replacement}${prompt.slice(mentionState.end)}`;
+    const nextCaretPosition = mentionState.start + replacement.length;
+
+    setPrompt(nextPrompt);
+    setMentionState(null);
+    setActiveMentionIndex(0);
+
+    window.requestAnimationFrame(() => {
+      inputRef.current?.focus();
+      inputRef.current?.setSelectionRange(nextCaretPosition, nextCaretPosition);
+    });
+  }, [mentionState, prompt]);
+
   const handleDelete = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     setNodes((nds) => nds.filter((n) => n.id !== id));
@@ -151,11 +245,49 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
     document.body.removeChild(a);
   }, [data.imageSrc, id]);
 
+  const handlePreviewOpen = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!data.imageSrc || data.isLoading) return;
+    setIsPreviewOpen(true);
+  }, [data.imageSrc, data.isLoading]);
+
+  const handlePreviewClose = useCallback((e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setIsPreviewOpen(false);
+  }, []);
+
+  const handleCreateLinkedImageNode = useCallback((direction: LinkedImageDirection) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    data.onCreateLinkedImageNode?.(id, direction);
+  }, [data, id]);
+
   return (
     <div className={clsx(
       "relative transition-all duration-200",
       selected ? "ring-2 ring-blue-500/50 rounded-2xl" : ""
     )}>
+      {selected && (
+        <>
+          <button
+            type="button"
+            onClick={handleCreateLinkedImageNode('input')}
+            className="absolute left-[-24px] top-1/2 z-40 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-[#202020]/95 text-white shadow-xl backdrop-blur-md transition-all hover:scale-105 hover:bg-[#2a2a2a]"
+            title="添加参考图像节点"
+          >
+            <Plus className="h-5 w-5" />
+          </button>
+
+          <button
+            type="button"
+            onClick={handleCreateLinkedImageNode('output')}
+            className="absolute right-[-24px] top-1/2 z-40 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-[#202020]/95 text-white shadow-xl backdrop-blur-md transition-all hover:scale-105 hover:bg-[#2a2a2a]"
+            title="基于当前图像新建节点"
+          >
+            <Plus className="h-5 w-5" />
+          </button>
+        </>
+      )}
+
       <Handle type="target" position={Position.Left} className="w-3 h-3 bg-blue-500 border-2 border-gray-900" />
       
       {/* Title */}
@@ -220,7 +352,8 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
           <img
             src={data.imageSrc}
             alt="Node content"
-            className="w-full h-full object-cover animate-fade-in"
+            className="w-full h-full cursor-zoom-in object-cover animate-fade-in"
+            onClick={handlePreviewOpen}
             onLoad={(e) => {
               const img = e.target as HTMLImageElement;
               const ratio = img.naturalWidth / img.naturalHeight;
@@ -271,20 +404,108 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-stretch gap-3">
-            <textarea
-              ref={inputRef}
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              placeholder="描述任何你想要生成的内容"
-              className="min-h-[108px] flex-1 resize-none rounded-[24px] border border-white/8 bg-black/25 px-5 py-4 text-[15px] leading-7 text-white outline-none transition-colors placeholder:text-neutral-500 focus:border-white/18"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  handleGenerate(e);
-                }
-                e.stopPropagation();
-              }}
-            />
+            <div className="relative flex-1">
+              {referenceImages.length > 0 && (
+                <div className="mb-3 flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {referenceImages.map((reference) => (
+                    <div
+                      key={reference.nodeId}
+                      className="flex shrink-0 items-center gap-2 rounded-full border border-white/10 bg-white/8 px-2 py-1.5"
+                    >
+                      <img
+                        src={reference.imageSrc}
+                        alt={reference.label}
+                        className="h-9 w-9 rounded-full object-cover"
+                      />
+                      <span className="pr-2 text-xs font-medium text-white">{reference.label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <textarea
+                ref={inputRef}
+                value={prompt}
+                onChange={(e) => {
+                  const nextPrompt = e.target.value;
+                  setPrompt(nextPrompt);
+                  syncMentionState(nextPrompt, e.target.selectionStart ?? nextPrompt.length);
+                }}
+                onClick={(e) => syncMentionState(e.currentTarget.value, e.currentTarget.selectionStart ?? e.currentTarget.value.length)}
+                onKeyUp={(e) => syncMentionState(e.currentTarget.value, e.currentTarget.selectionStart ?? e.currentTarget.value.length)}
+                placeholder="描述任何你想要生成的内容，按 @ 引用素材"
+                className="min-h-[108px] flex-1 resize-none rounded-[24px] border border-white/8 bg-black/25 px-5 py-4 text-[15px] leading-7 text-white outline-none transition-colors placeholder:text-neutral-500 focus:border-white/18"
+                onKeyDown={(e) => {
+                  if (mentionState && filteredReferenceImages.length > 0) {
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      setActiveMentionIndex((index) => (index + 1) % filteredReferenceImages.length);
+                      return;
+                    }
+
+                    if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      setActiveMentionIndex((index) => (index - 1 + filteredReferenceImages.length) % filteredReferenceImages.length);
+                      return;
+                    }
+
+                    if (e.key === 'Enter' || e.key === 'Tab') {
+                      e.preventDefault();
+                      insertReference(filteredReferenceImages[activeMentionIndex]);
+                      return;
+                    }
+
+                    if (e.key === 'Escape') {
+                      e.preventDefault();
+                      setMentionState(null);
+                      return;
+                    }
+                  }
+
+                  if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleGenerate(e);
+                  }
+                  e.stopPropagation();
+                }}
+              />
+
+              {mentionState && filteredReferenceImages.length > 0 && (
+                <div className="absolute right-0 top-[calc(100%+12px)] z-[70] min-w-[280px] overflow-hidden rounded-[24px] border border-white/10 bg-[#2A2A2E]/95 p-2 shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
+                  <div className="px-3 py-2 text-xs font-medium uppercase tracking-[0.18em] text-neutral-400">
+                    Add Reference
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    {filteredReferenceImages.map((reference, index) => (
+                      <button
+                        key={reference.nodeId}
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          insertReference(reference);
+                        }}
+                        className={clsx(
+                          "flex items-center gap-3 rounded-[20px] px-3 py-3 text-left transition-colors",
+                          index === activeMentionIndex ? "bg-white/12" : "hover:bg-white/8"
+                        )}
+                      >
+                        <img
+                          src={reference.imageSrc}
+                          alt={reference.label}
+                          className="h-12 w-12 rounded-2xl object-cover"
+                        />
+                        <div className="min-w-0">
+                          <div className="text-base font-semibold text-white">{reference.label}</div>
+                          {reference.prompt ? (
+                            <div className="truncate text-sm text-neutral-400">{reference.prompt}</div>
+                          ) : null}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <div className="flex items-center gap-3 text-xs text-neutral-300">
@@ -327,8 +548,9 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
                       <option value="veo-3.1-generate-preview" className="bg-[#1C1C1C]">Veo 3.1 Preview</option>
                     ) : (
                       <>
-                        <option value="gemini-3.1-flash-image-preview" className="bg-[#1C1C1C]">Gemini 3.1 Flash</option>
-                        <option value="gemini-2.5-flash-image" className="bg-[#1C1C1C]">Gemini 2.5 Flash</option>
+                        <option value="gemini-3.1-image-flash-preview" className="bg-[#1C1C1C]">Nano Banana 2</option>
+                        <option value="gemini-2.5-image-flash" className="bg-[#1C1C1C]">Nano Banana</option>
+                        <option value="gemini-3-pro-image-preview" className="bg-[#1C1C1C]">Nano Banana Pro</option>
                       </>
                     )}
                   </select>
@@ -451,6 +673,34 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
       )}
 
       <Handle type="source" position={Position.Right} className="w-3 h-3 bg-blue-500 border-2 border-gray-900" />
+
+      {isPreviewOpen && data.imageSrc && createPortal(
+        <div
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 p-4 backdrop-blur-md"
+          onClick={handlePreviewClose}
+        >
+          <button
+            type="button"
+            onClick={handlePreviewClose}
+            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full border border-white/15 bg-black/40 text-white transition-colors hover:bg-black/60"
+            title="Close preview"
+          >
+            <X className="h-4.5 w-4.5" />
+          </button>
+
+          <div
+            className="relative max-h-[92vh] max-w-[92vw] overflow-hidden rounded-2xl border border-white/10 bg-black/30 shadow-[0_24px_80px_rgba(0,0,0,0.45)]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img
+              src={data.imageSrc}
+              alt="Preview"
+              className="max-h-[92vh] max-w-[92vw] object-contain"
+            />
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
