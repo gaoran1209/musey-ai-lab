@@ -16,10 +16,13 @@ export default function App() {
         {/* Header */}
         <header className="absolute top-0 left-0 right-0 z-10 flex items-center justify-between px-8 py-6 pointer-events-none">
           <div className="flex items-center gap-4">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 shadow-lg shadow-blue-500/20">
+            <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/12 bg-[linear-gradient(135deg,rgba(97,106,255,0.95),rgba(138,92,246,0.92))] shadow-[0_12px_32px_rgba(88,101,242,0.28),inset_0_1px_0_rgba(255,255,255,0.18)]">
               <Sparkles className="h-5 w-5 text-white" />
             </div>
-            <h1 className="text-xl font-semibold tracking-tight text-white/90 drop-shadow-md">MUSEY AI Lab</h1>
+            <div className="flex flex-col">
+              <h1 className="text-xl font-semibold tracking-tight text-white/95 drop-shadow-md">MUSEY AI Lab</h1>
+              <span className="text-[11px] font-medium uppercase tracking-[0.22em] text-white/35">Creative Canvas</span>
+            </div>
           </div>
 
           <div className="flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-4 py-2 backdrop-blur-md">

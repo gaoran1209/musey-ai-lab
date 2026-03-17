@@ -78,18 +78,31 @@ function base64ToUint8Array(base64: string) {
   return bytes;
 }
 
-async function videoToObjectUrl(video: any, apiKey: string) {
+async function videoToObjectUrl(video: any, ai: GoogleGenAI, apiKey: string) {
   if (video?.videoBytes) {
     const mimeType = video.mimeType || 'video/mp4';
     const bytes = base64ToUint8Array(video.videoBytes);
     return URL.createObjectURL(new Blob([bytes], { type: mimeType }));
   }
 
-  if (!video?.uri) {
+  if (!video?.downloadUri && !video?.uri && typeof video?.name === 'string') {
+    const file = await ai.files.get({ name: video.name });
+    video = {
+      ...video,
+      ...file,
+    };
+  }
+
+  const downloadUrl =
+    video?.downloadUri ||
+    video?.uri ||
+    video?.gcsUri;
+
+  if (!downloadUrl) {
     throw new Error('Video generation finished but no downloadable video was returned.');
   }
 
-  const response = await fetch(video.uri, {
+  const response = await fetch(downloadUrl, {
     headers: {
       'x-goog-api-key': apiKey,
     },
@@ -101,6 +114,27 @@ async function videoToObjectUrl(video: any, apiKey: string) {
 
   const blob = await response.blob();
   return URL.createObjectURL(blob);
+}
+
+function extractGeneratedVideoResult(operation: any) {
+  const response = operation?.response;
+  const filteredCount = response?.raiMediaFilteredCount ?? 0;
+  const filteredReasons = Array.isArray(response?.raiMediaFilteredReasons)
+    ? response.raiMediaFilteredReasons.filter(Boolean)
+    : [];
+
+  const generatedVideo =
+    response?.generatedVideos?.[0]?.video ||
+    response?.videos?.[0] ||
+    response?.generatedSamples?.[0]?.video ||
+    response?.generateVideoResponse?.generatedSamples?.[0]?.video ||
+    null;
+
+  return {
+    generatedVideo,
+    filteredCount,
+    filteredReasons,
+  };
 }
 
 function extractErrorMessage(error: unknown) {
@@ -394,8 +428,28 @@ function Flow() {
               throw new Error(operationError || 'Video generation failed.');
             }
 
-            const generatedVideo = operation.response?.generatedVideos?.[0]?.video;
-            resultMediaSrc = await videoToObjectUrl(generatedVideo, apiKey);
+            let videoResult = extractGeneratedVideoResult(operation);
+            let finalizedAttempts = 0;
+
+            while (!videoResult.generatedVideo && finalizedAttempts < 3) {
+              finalizedAttempts += 1;
+              await sleep(2000);
+              operation = await ai.operations.getVideosOperation({ operation });
+              videoResult = extractGeneratedVideoResult(operation);
+            }
+
+            if (!videoResult.generatedVideo) {
+              if (videoResult.filteredCount > 0) {
+                const detail = videoResult.filteredReasons.length
+                  ? ` (${videoResult.filteredReasons.join(', ')})`
+                  : '';
+                throw new Error(`Video generation was filtered by safety checks${detail}.`);
+              }
+
+              throw new Error('Video generation completed, but no video payload was returned by Gemini.');
+            }
+
+            resultMediaSrc = await videoToObjectUrl(videoResult.generatedVideo, ai, apiKey);
           } else {
             const contents: any[] = imageSources.map((imageSrc) => ({
               inlineData: dataUrlToInlineData(imageSrc),

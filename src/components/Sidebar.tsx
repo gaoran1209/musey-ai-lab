@@ -64,9 +64,8 @@ export function Sidebar() {
         setIsUserMenuOpen(false);
       }
       if (historyRef.current && !historyRef.current.contains(event.target as Node)) {
-        // Don't close history if clicking the history button in user menu
         const target = event.target as Element;
-        if (!target.closest('.history-toggle-btn')) {
+        if (!target.closest('.sidebar-history-toggle')) {
           setIsHistoryOpen(false);
         }
       }
@@ -136,6 +135,16 @@ export function Sidebar() {
           <SidebarIcon icon={<ImageIcon className="w-5 h-5" />} tooltip={language === 'zh' ? '背景库' : 'Backgrounds'} />
           <SidebarIcon icon={<Accessibility className="w-5 h-5" />} tooltip={language === 'zh' ? '姿势库' : 'Poses'} />
           <SidebarIcon icon={<LayoutTemplate className="w-5 h-5" />} tooltip={language === 'zh' ? '模板库' : 'Templates'} />
+          <SidebarAction
+            icon={<History className="w-5 h-5" />}
+            tooltip={language === 'zh' ? '历史记录' : 'History'}
+            isActive={isHistoryOpen}
+            onClick={() => {
+              setIsHistoryOpen((value) => !value);
+              setIsUserMenuOpen(false);
+            }}
+            className="sidebar-history-toggle"
+          />
         </div>
 
         <div className="w-6 h-[1px] bg-white/10 my-1" />
@@ -161,16 +170,6 @@ export function Sidebar() {
               >
                 <Globe className="w-4 h-4" />
                 {language === 'zh' ? 'English' : '中文'}
-              </button>
-              <button 
-                onClick={() => {
-                  setIsHistoryOpen(!isHistoryOpen);
-                  setIsUserMenuOpen(false);
-                }}
-                className="history-toggle-btn flex items-center gap-2 px-3 py-2 text-sm text-white hover:bg-white/10 rounded-lg transition-colors text-left"
-              >
-                <History className="w-4 h-4" />
-                {language === 'zh' ? '历史记录' : 'History'}
               </button>
 
               <div className="h-[1px] bg-white/10 my-1" />
@@ -319,7 +318,32 @@ export function Sidebar() {
 
 function SidebarIcon({ icon, tooltip }: { icon: React.ReactNode; tooltip: string }) {
   return (
-    <button className="w-10 h-10 text-neutral-400 hover:text-white hover:bg-white/10 rounded-full flex items-center justify-center transition-colors relative group">
+    <SidebarAction icon={icon} tooltip={tooltip} />
+  );
+}
+
+function SidebarAction({
+  icon,
+  tooltip,
+  isActive = false,
+  onClick,
+  className = '',
+}: {
+  icon: React.ReactNode;
+  tooltip: string;
+  isActive?: boolean;
+  onClick?: () => void;
+  className?: string;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`w-10 h-10 rounded-full flex items-center justify-center transition-all relative group border ${
+        isActive
+          ? 'border-white/18 bg-white/14 text-white shadow-[0_10px_24px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.08)]'
+          : 'border-transparent text-neutral-400 hover:text-white hover:bg-white/10'
+      } ${className}`}
+    >
       {icon}
       <div className="absolute left-full ml-4 px-2 py-1 bg-[#2A2A2A] text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap border border-white/10">
         {tooltip}
