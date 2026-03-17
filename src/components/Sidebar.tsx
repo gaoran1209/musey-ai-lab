@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Plus, Shapes, Users, Image as ImageIcon, Accessibility, LayoutTemplate, ImagePlus, Video, History, Globe, Info, Clock, CheckCircle2, XCircle, Loader2, Save } from 'lucide-react';
 import { useHistory } from './HistoryContext';
+import { appVersion, buildNumber } from '../utils/buildInfo';
 import { getStoredGeminiApiKey, setStoredGeminiApiKey } from '../utils/geminiApiKey';
 
 export function Sidebar() {
@@ -217,9 +218,14 @@ export function Sidebar() {
               </div>
 
               <div className="h-[1px] bg-white/10 my-1" />
-              <div className="flex items-center gap-2 px-3 py-2 text-xs text-neutral-400">
-                <Info className="w-3.5 h-3.5" />
-                Version v0.1
+              <div className="px-3 py-2 text-xs text-neutral-400">
+                <div className="flex items-center gap-2">
+                  <Info className="w-3.5 h-3.5" />
+                  <span>Version {appVersion}</span>
+                </div>
+                <div className="mt-1 pl-[1.35rem] text-[11px] text-neutral-500">
+                  Build {buildNumber || 'local'}
+                </div>
               </div>
             </div>
           )}

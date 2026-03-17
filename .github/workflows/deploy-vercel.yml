@@ -35,6 +35,8 @@ jobs:
         run: |
           npm run lint
           npm run build
+        env:
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
 
       - name: Install Vercel CLI
         run: npm install --global vercel@latest
@@ -48,6 +50,7 @@ jobs:
       - name: Build deployment artifact
         run: vercel build --prod --token="${{ secrets.VERCEL_TOKEN }}"
         env:
+          GITHUB_RUN_NUMBER: ${{ github.run_number }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 

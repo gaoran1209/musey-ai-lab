@@ -3,6 +3,7 @@ import { Handle, Position, NodeProps, Node, useReactFlow } from '@xyflow/react';
 import { UploadCloud, Send, Mic, Sparkles, Layout, Image as ImageIcon, Trash2, Download, Video as VideoIcon, Clock, Sparkle, Layers3, X, Plus, Expand } from 'lucide-react';
 import clsx from 'clsx';
 import { createPortal } from 'react-dom';
+import { v4 as uuidv4 } from 'uuid';
 
 export type LinkedImageDirection = 'input' | 'output';
 
@@ -179,18 +180,57 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
   }, [isPreviewOpen]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const result = event.target?.result as string;
-      setNodes((nds) =>
-        nds.map((n) =>
-          n.id === id ? { ...n, data: { ...n.data, imageSrc: result } } : n
-        )
-      );
-    };
-    reader.readAsDataURL(file);
+    const files = Array.from(e.target.files || []) as File[];
+    const imageFiles = files.filter((file) => file.type.startsWith('image/'));
+    if (!imageFiles.length) return;
+
+    Promise.all(
+      imageFiles.map(
+        (file) =>
+          new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => resolve(event.target?.result as string);
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(file);
+          })
+      )
+    )
+      .then((imageSources) => {
+        setNodes((nds) =>
+          nds.flatMap((node) => {
+            if (node.id !== id) return [node];
+
+            const updatedNode = {
+              ...node,
+              data: {
+                ...node.data,
+                imageSrc: imageSources[0],
+              },
+            };
+
+            const extraNodes = imageSources.slice(1).map((imageSrc, index) => ({
+              id: uuidv4(),
+              type: 'imageNode' as const,
+              position: {
+                x: node.position.x + (index + 1) * 320,
+                y: node.position.y,
+              },
+              data: {
+                imageSrc,
+                onGenerate: data.onGenerate,
+              },
+            }));
+
+            return [updatedNode, ...extraNodes];
+          })
+        );
+      })
+      .catch((error) => {
+        console.error('Failed to load selected images:', error);
+      })
+      .finally(() => {
+        e.target.value = '';
+      });
   };
 
   const handleGenerate = async (e: React.FormEvent) => {
@@ -487,6 +527,7 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
               type="file"
               className="hidden"
               accept="image/*"
+              multiple
               onChange={handleFileUpload}
             />
           </label>
@@ -628,11 +669,8 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
                       return (
                         <span
                           key={`reference-${segment.reference.nodeId}-${index}`}
-                          className="mx-[1px] inline-flex items-center gap-1.5 rounded-[14px] border border-sky-400/40 bg-[linear-gradient(180deg,rgba(44,83,154,0.42),rgba(28,50,99,0.72))] px-2.5 py-1 align-baseline text-[0.95em] font-semibold leading-none text-sky-50 shadow-[0_0_0_1px_rgba(59,130,246,0.14),inset_0_1px_0_rgba(255,255,255,0.12)]"
+                          className="inline rounded-[0.9em] bg-[linear-gradient(180deg,rgba(44,83,154,0.38),rgba(28,50,99,0.64))] font-semibold text-sky-50 shadow-[0_0_0_1px_rgba(59,130,246,0.34),0_0_12px_rgba(37,99,235,0.18),inset_0_1px_0_rgba(255,255,255,0.12)] [box-decoration-break:clone] [-webkit-box-decoration-break:clone]"
                         >
-                          <span className="flex h-4.5 w-4.5 items-center justify-center rounded-full bg-sky-950/55 text-sky-200">
-                            <ImageIcon className="h-3 w-3" />
-                          </span>
                           <span>{segment.value}</span>
                         </span>
                       );

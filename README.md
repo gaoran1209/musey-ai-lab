@@ -1,71 +1,194 @@
-<div align="center">
-<img width="1200" height="475" alt="产品封面图" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
-
 # MUSEY AI Lab
 
-一个由 Google Gemini 提供支持的，基于节点的视觉 AI 创作画布，专为直观的图像生成和编辑工作流而设计。
-</div>
+一个基于 React Flow 的视觉 AI 画布，用节点把图像生成、图像参考、结果复用和视频生成串成可视化工作流。
 
-## ✨ 核心特性
+当前版本已经支持本地 API Key 管理、多图拖入画布、图像结果复用、引用参考图生成，以及图像/视频双节点创作流程。
 
-- **无限视觉流画布 (Infinite Visual Flow Canvas)**：基于 React Flow 构建，为您提供无缝的工作空间来排列节点、平移及缩放。
-- **基于节点的 AI 工作流 (Node-Based AI Workflows)**：通过连接图像节点来可视化地构建图像生成和编辑管道。支持拖拽图像快速开始。
-- **Gemini 强力驱动 (Powered by Gemini)**：通过 Google GenAI SDK 深度集成 Gemini 模型，提供高质量、极速的图像生成体验。
-- **生成历史与追踪 (Generation History & Tracking)**：内置历史记录面板，方便追踪提示词 (Prompt)、生成状态以及响应耗时。
-- **双语支持 (Bilingual Support)**：界面支持中英双语 (`zh`/`en`) 实时切换。
-- **本地密钥管理 (Local Key Management)**：每位用户在浏览器内输入并保存自己的 Gemini API Key，不依赖部署平台注入。
+## 当前能力
 
-## 🚀 快速启动指南
+- 节点式无限画布：支持平移、缩放、连接节点，适合把参考图、结果图和后续变体串起来。
+- 图像节点与视频节点：可以从左侧面板直接新增两种节点。
+- Gemini / Veo 模型接入：
+  - `gemini-3.1-image-flash-preview` 前台显示为 `Nano Banana 2`
+  - `gemini-2.5-image-flash` 前台显示为 `Nano Banana`
+  - `gemini-3-pro-image-preview` 前台显示为 `Nano Banana Pro`
+  - `veo-3.1-generate-preview` 用于视频生成
+- 本地 API Key 保存：在侧栏用户菜单中输入并点击保存，只保存在当前浏览器 `localStorage`。
+- 多图导入：
+  - 支持把多张图片一次性拖入空白画布
+  - 支持在图像节点上传时多选图片
+- 参考图工作流：
+  - 图像节点之间可以建立引用连接
+  - 提示词输入框支持 `@` 引用参考图
+  - 可以从当前图像继续派生新图像节点
+- 结果节点优化：
+  - 结果标题使用 `生成图像结果 1` 这类稳定命名
+  - 提示词不会在提交后清空，方便继续编辑后二次生成
+- 图像对象交互：
+  - 单击对象只负责选中
+  - 右下角 icon 支持查看大图和下载
+  - 右上角 icon 支持删除
+- 历史记录面板：可查看提示词、生成状态、错误信息和耗时。
+- 中英切换：侧栏用户菜单内支持 `zh / en` 切换。
 
-**环境依赖：** [Node.js](https://nodejs.org/) (推荐 v20 或更高版本)
+## 快速开始
 
-1. **安装项目依赖：**
-   ```bash
-   npm install
-   ```
+### 环境要求
 
-2. **启动应用后输入 API 密钥：**
-   当前仓库采用 demo 模式，不从 `.env`、Vercel 环境变量或构建产物中注入 Gemini API Key。
-   请在应用右侧用户菜单内手动输入您自己的 Google Gemini API Key，密钥只会保存在当前浏览器的本地存储中。
+- Node.js `>= 20`
+- 一个可用的 Google Gemini API Key
 
-3. **运行开发服务器：**
-   ```bash
-   npm run dev
-   ```
+### 安装依赖
 
-4. **打开浏览器体验：**
-   在浏览器中访问终端显示的本地地址（通常是 `http://localhost:3000`）即可开始您的 AI 创作。
+```bash
+npm install
+```
 
-## ☁️ Demo 部署说明
+### 启动开发环境
 
-- 可以直接部署到 Vercel，作为静态前端站点访问。
-- 不要在 Vercel 中配置 `GEMINI_API_KEY` 供前端使用；当前 demo 模式下每位用户都应在浏览器内输入自己的密钥。
-- 如果未来要做公开产品，再把 Gemini 调用迁移到服务端 API。
+```bash
+npm run dev
+```
 
-## 🔁 GitHub Actions + Vercel
+默认会启动在：
 
-仓库已经包含两条工作流：
+```text
+http://localhost:3000
+```
 
-- `CI`：在 `main`、`codex/**` 和 Pull Request 上执行 `npm ci`、`npm run lint`、`npm run build`
-- `Deploy To Vercel`：在 `main` 分支更新后自动部署到 Vercel 生产环境
+### 配置 API Key
 
-在 GitHub 仓库 `Settings -> Secrets and variables -> Actions` 中配置以下 secrets：
+应用打开后：
 
-- `VERCEL_TOKEN`
-- `VERCEL_ORG_ID`
-- `VERCEL_PROJECT_ID`
+1. 点击左侧栏底部头像
+2. 在 `API Key` 输入框中填写你的 Gemini Key
+3. 点击右侧保存图标
 
-首次接入建议：
+说明：
 
-1. 在 Vercel 中导入该 GitHub 仓库并完成项目创建
-2. 从本地执行 `vercel link` 或在 Vercel 项目设置中找到 `org id` 和 `project id`
-3. 把上述三个值写入 GitHub Actions secrets
-4. 合并到 `main` 后，由 `Deploy To Vercel` 自动发布
+- Key 仅保存在当前浏览器本地
+- 当前版本不依赖服务端，也不会自动从部署环境注入前端 Key
 
-## 🛠️ 技术栈说明
+## 使用方式
 
-- **前端框架 (Frontend Framework)**：[React 19](https://react.dev/) + [Vite](https://vitejs.dev/)
-- **视觉画布底座 (Visual Canvas)**：[React Flow (@xyflow/react)](https://reactflow.dev/)
-- **UI 样式 (Styling)**：[Tailwind CSS v4](https://tailwindcss.com/)
-- **AI 模型集成 (AI Integration)**：[@google/genai](https://github.com/google/generative-ai-js)
-- **图标与动画 (Icons & Animation)**：[Lucide React](https://lucide.dev/) + [Motion](https://motion.dev/)
+### 新建节点
+
+- 点击左侧 `+` 按钮，选择图像节点或视频节点
+- 也可以在空白画布双击后快速创建节点
+- 当前已禁用空白画布双击缩放，避免和“双击新建”冲突
+
+### 导入图片
+
+- 把一张或多张图片直接拖入空白画布
+- 或在空图像节点点击上传按钮并多选图片
+
+多图导入行为：
+
+- 拖入空白画布：会生成多个图像节点
+- 在已有图像节点上传：第一张替换当前节点，其余图片自动生成新节点
+
+### 生成图像
+
+1. 选中一个图像节点
+2. 在底部输入框中输入提示词
+3. 选择模型、比例、分辨率、数量
+4. 点击发送按钮生成
+
+当前交互细节：
+
+- 语音按钮为单击开始，再次单击停止
+- 发送按钮是主行动按钮，语音按钮是弱化的副行动按钮
+- 生成后提示词会保留在文本框里，方便继续编辑
+
+### 使用参考图
+
+- 通过节点连接把参考图接到目标图像节点
+- 在输入框里使用 `@` 可快速引用已连接的参考图
+- 可基于当前图像继续创建新的输出图像节点
+
+### 查看和下载结果
+
+- 单击图像对象：选中当前对象
+- 右下角放大 icon：查看大图
+- 右下角下载 icon：下载图片
+- 右上角删除 icon：删除对象
+
+## 主要交互设计
+
+### 图像节点
+
+- 支持空状态上传
+- 支持生成结果命名
+- 支持引用参考图
+- 支持保留提示词进行二次编辑
+- 支持大图查看和下载
+
+### 视频节点
+
+- 支持 Veo 视频生成
+- 支持分辨率、时长等参数
+- 支持视频播放、暂停和下载
+
+### 侧栏
+
+- 新增图像节点 / 视频节点
+- 切换中英语言
+- 查看历史记录
+- 保存本地 API Key
+
+## 技术栈
+
+- React 19
+- Vite 6
+- TypeScript
+- Tailwind CSS v4
+- React Flow (`@xyflow/react`)
+- Google GenAI SDK (`@google/genai`)
+- Lucide React
+
+## 项目结构
+
+```text
+src/
+  App.tsx                        应用入口
+  components/
+    FlowCanvas.tsx               画布与节点编排逻辑
+    Sidebar.tsx                  左侧工具栏、语言切换、API Key、历史面板
+    HistoryContext.tsx           生成历史状态管理
+    nodes/
+      ImageNode.tsx              图像节点 UI 与交互
+      VideoNode.tsx              视频节点 UI 与交互
+  services/
+    ai.ts                        图像生成服务封装
+  utils/
+    geminiApiKey.ts              本地 API Key 读写
+```
+
+## 可用脚本
+
+```bash
+npm run dev      # 启动开发服务器
+npm run build    # 构建生产产物
+npm run preview  # 预览构建结果
+npm run lint     # TypeScript 类型检查
+npm run clean    # 清理 dist
+```
+
+## 部署说明
+
+这是一个纯前端画布 Demo，可以直接部署为静态站点，例如 Vercel。
+
+建议：
+
+- 不要把前端可见的 Gemini Key 写进构建环境
+- 保持当前“用户自己在浏览器本地填写 Key”的模式
+- 如果要面向公开用户发布，再把模型调用迁移到服务端
+
+## 当前定位
+
+这个仓库当前更适合：
+
+- AI 图像工作流原型验证
+- 视觉节点式创作体验探索
+- Gemini / Veo 前端交互 Demo
+- 后续扩展为完整创作工具的基础版本
