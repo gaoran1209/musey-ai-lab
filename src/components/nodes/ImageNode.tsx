@@ -447,36 +447,33 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
             <Plus className="h-5 w-5" />
           </button>
 
-          <div
-            className={clsx(
-              "absolute right-[-24px] top-1/2 z-40 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border bg-[#202020]/95 text-white shadow-xl backdrop-blur-md transition-all hover:scale-105",
-              data.isOutputConnectorActive
-                ? "border-sky-300/65 bg-sky-500/18 text-sky-50 shadow-[0_0_0_1px_rgba(147,197,253,0.22),0_0_32px_rgba(59,130,246,0.28)]"
-                : "border-white/20 hover:bg-[#2a2a2a]"
-            )}
-            onPointerDownCapture={handleOutputPointerDownCapture}
-            onPointerMoveCapture={handleOutputPointerMoveCapture}
-            onPointerUpCapture={handleOutputPointerUpCapture}
-            onPointerCancelCapture={handleOutputPointerCancelCapture}
-            onClick={handleOutputClick}
-            title="基于当前图像新建节点"
-          >
-            <Plus className="h-5 w-5" />
+          <div className="absolute right-[-24px] top-1/2 z-40 h-11 w-11 -translate-y-1/2">
             <Handle
               id="output-plus"
               type="source"
               position={Position.Right}
-              className="!absolute !border-0 !bg-transparent !opacity-0"
+              className={clsx(
+                "!absolute !inset-0 !h-11 !w-11 !translate-x-0 !translate-y-0 !rounded-full !border !opacity-100 shadow-xl backdrop-blur-md transition-all hover:scale-105",
+                data.isOutputConnectorActive
+                  ? "!border-sky-300/65 !bg-sky-500/18 !text-sky-50 !shadow-[0_0_0_1px_rgba(147,197,253,0.22),0_0_32px_rgba(59,130,246,0.28)]"
+                  : "!border-white/20 !bg-[#202020]/95 hover:!bg-[#2a2a2a]"
+              )}
               style={{
                 inset: 0,
                 width: '100%',
                 height: '100%',
                 transform: 'none',
-                background: 'transparent',
-                border: 'none',
               }}
               isConnectableStart
+              onPointerDownCapture={handleOutputPointerDownCapture}
+              onPointerMoveCapture={handleOutputPointerMoveCapture}
+              onPointerUpCapture={handleOutputPointerUpCapture}
+              onPointerCancelCapture={handleOutputPointerCancelCapture}
+              onClick={handleOutputClick}
             />
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-white">
+              <Plus className="h-5 w-5" />
+            </div>
           </div>
         </>
       )}
