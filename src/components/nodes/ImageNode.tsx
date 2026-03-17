@@ -588,6 +588,21 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
 
             {selected && !data.isLoading && (
               <div className="absolute bottom-3 right-3 z-40 flex items-center gap-2">
+                <label
+                  className="flex h-10 cursor-pointer items-center gap-2 rounded-full border border-white/12 bg-black/45 px-3 text-sm text-white shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-md transition-all hover:scale-[1.03] hover:bg-black/60"
+                  title="替换图像"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <UploadCloud className="h-4 w-4" />
+                  <span>替换</span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileUpload}
+                  />
+                </label>
                 <button
                   type="button"
                   onClick={handlePreviewOpen}
