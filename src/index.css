@@ -3,6 +3,7 @@
 @theme {
   --animate-shimmer: shimmer 2s infinite linear;
   --animate-fade-in: fadeIn 0.5s ease-out forwards;
+  --animate-edge-flow: edgeFlow 0.9s linear infinite;
 
   @keyframes shimmer {
     0% { transform: translateX(-100%); }
@@ -18,6 +19,11 @@
     0% { background-position: 0% 50%; }
     50% { background-position: 100% 50%; }
     100% { background-position: 0% 50%; }
+  }
+
+  @keyframes edgeFlow {
+    from { stroke-dashoffset: 18; }
+    to { stroke-dashoffset: 0; }
   }
 }
 
@@ -47,24 +53,31 @@
   }
 
   .react-flow-dark {
-    --xy-edge-stroke-default: rgba(226, 232, 240, 0.82);
-    --xy-edge-stroke-selected: rgba(191, 219, 254, 1);
-    --xy-connectionline-stroke-default: rgba(191, 219, 254, 0.98);
+    --xy-edge-stroke-default: rgba(229, 231, 235, 0.92);
+    --xy-edge-stroke-selected: rgba(255, 255, 255, 1);
+    --xy-connectionline-stroke-default: rgba(229, 231, 235, 0.96);
     --xy-handle-background-color-default: #1a1a1a;
     --xy-handle-border-color-default: #9ca3af;
   }
 
   .react-flow-dark .react-flow__edge-path {
     stroke-linecap: round;
-    filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.14));
+    stroke-dasharray: 10 8;
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.16));
+  }
+
+  .react-flow-dark .react-flow__edge.animated .react-flow__edge-path {
+    animation: edgeFlow 0.9s linear infinite;
   }
 
   .react-flow-dark .react-flow__edge.selected .react-flow__edge-path {
-    filter: drop-shadow(0 0 10px rgba(147, 197, 253, 0.4));
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.28));
   }
 
   .react-flow-dark .react-flow__connection-path {
     stroke-linecap: round;
-    filter: drop-shadow(0 0 10px rgba(96, 165, 250, 0.42));
+    stroke-dasharray: 10 8;
+    filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.2));
+    animation: edgeFlow 0.9s linear infinite;
   }
 }

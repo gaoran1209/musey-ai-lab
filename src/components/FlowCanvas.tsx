@@ -33,40 +33,20 @@ const DEFAULT_VIDEO_MODEL = 'veo-3.1-generate-preview';
 const VIDEO_POLL_INTERVAL_MS = 10000;
 const VIDEO_POLL_MAX_ATTEMPTS = 60;
 const REFERENCE_IMAGE_LIMIT = 6;
-const REFERENCE_EDGE_STYLE = {
-  stroke: 'rgba(226, 232, 240, 0.82)',
+const FLOW_EDGE_STYLE = {
+  stroke: 'rgba(229, 231, 235, 0.92)',
   opacity: 1,
-  strokeWidth: 2.75,
+  strokeWidth: 2.65,
+  strokeDasharray: '10 8',
   strokeLinecap: 'round' as const,
-  filter: 'drop-shadow(0 0 6px rgba(191, 219, 254, 0.28))',
-};
-const GENERATED_EDGE_PENDING_STYLE = {
-  stroke: 'rgba(125, 211, 252, 0.96)',
-  opacity: 1,
-  strokeWidth: 2.8,
-  strokeLinecap: 'round' as const,
-  filter: 'drop-shadow(0 0 10px rgba(56, 189, 248, 0.36))',
-};
-const GENERATED_EDGE_SUCCESS_STYLE = {
-  stroke: 'rgba(241, 245, 249, 0.72)',
-  opacity: 1,
-  strokeWidth: 2.55,
-  strokeLinecap: 'round' as const,
-  filter: 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.18))',
-};
-const GENERATED_EDGE_ERROR_STYLE = {
-  stroke: 'rgba(248, 113, 113, 0.94)',
-  opacity: 1,
-  strokeWidth: 2.7,
-  strokeLinecap: 'round' as const,
-  filter: 'drop-shadow(0 0 10px rgba(239, 68, 68, 0.28))',
+  filter: 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.16))',
 };
 const ACTIVE_CONNECTION_LINE_STYLE = {
-  stroke: 'rgba(191, 219, 254, 0.98)',
-  strokeWidth: 3,
-  strokeDasharray: '8 6',
+  stroke: 'rgba(229, 231, 235, 0.96)',
+  strokeWidth: 2.85,
+  strokeDasharray: '10 8',
   strokeLinecap: 'round' as const,
-  filter: 'drop-shadow(0 0 10px rgba(96, 165, 250, 0.42))',
+  filter: 'drop-shadow(0 0 8px rgba(255, 255, 255, 0.2))',
 };
 
 function sleep(ms: number) {
@@ -191,8 +171,8 @@ function createReferenceEdge(source: string, target: string): Edge {
     id: `e-${source}-${target}`,
     source,
     target,
-    animated: false,
-    style: REFERENCE_EDGE_STYLE,
+    animated: true,
+    style: FLOW_EDGE_STYLE,
   };
 }
 
@@ -304,7 +284,7 @@ function Flow() {
             source: nodeId,
             target: newNodeId,
             animated: true,
-            style: GENERATED_EDGE_PENDING_STYLE,
+            style: FLOW_EDGE_STYLE,
           });
           nodesToUpdate.push(newNodeId);
         }
@@ -345,7 +325,7 @@ function Flow() {
             source: nodeId,
             target: newNodeId,
             animated: true,
-            style: GENERATED_EDGE_PENDING_STYLE,
+            style: FLOW_EDGE_STYLE,
           });
           nodesToUpdate.push(newNodeId);
         }
@@ -469,7 +449,7 @@ function Flow() {
             setEdges((eds) =>
               eds.map((e) =>
                 e.id === `e-${nodeId}-${targetNodeId}`
-                  ? { ...e, animated: false, style: GENERATED_EDGE_SUCCESS_STYLE }
+                  ? { ...e, animated: true, style: FLOW_EDGE_STYLE }
                   : e
               )
             );
@@ -495,7 +475,7 @@ function Flow() {
             setEdges((eds) =>
               eds.map((e) =>
                 e.id === `e-${nodeId}-${targetNodeId}`
-                  ? { ...e, animated: false, style: GENERATED_EDGE_ERROR_STYLE }
+                  ? { ...e, animated: true, style: FLOW_EDGE_STYLE }
                   : e
               )
             );
@@ -683,7 +663,7 @@ function Flow() {
         nodeTypes={nodeTypes}
         connectionLineType={ConnectionLineType.Bezier}
         connectionLineStyle={ACTIVE_CONNECTION_LINE_STYLE}
-        defaultEdgeOptions={{ style: REFERENCE_EDGE_STYLE }}
+        defaultEdgeOptions={{ style: FLOW_EDGE_STYLE, animated: true }}
         fitView
         fitViewOptions={{ padding: 1.2, minZoom: 0.2, maxZoom: 1 }}
         zoomOnDoubleClick={false}
