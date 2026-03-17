@@ -403,10 +403,10 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
           className="absolute top-[calc(100%+24px)] left-1/2 z-50 flex w-[min(620px,calc(100vw-3rem))] -translate-x-1/2 cursor-default flex-col gap-3 rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(36,36,40,0.96),rgba(20,20,24,0.92))] p-4 shadow-[0_22px_80px_rgba(0,0,0,0.42)] backdrop-blur-3xl"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-stretch gap-3">
-            <div className="relative flex-1">
+          <div className="w-full">
+            <div className="relative w-full">
               {referenceImages.length > 0 && (
-                <div className="mb-3 flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="mb-4 flex w-full items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {referenceImages.map((reference) => (
                     <div
                       key={reference.nodeId}
@@ -434,7 +434,7 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
                 onClick={(e) => syncMentionState(e.currentTarget.value, e.currentTarget.selectionStart ?? e.currentTarget.value.length)}
                 onKeyUp={(e) => syncMentionState(e.currentTarget.value, e.currentTarget.selectionStart ?? e.currentTarget.value.length)}
                 placeholder="描述任何你想要生成的内容，按 @ 引用素材"
-                className="min-h-[108px] flex-1 resize-none rounded-[24px] border border-white/8 bg-black/25 px-5 py-4 text-[15px] leading-7 text-white outline-none transition-colors placeholder:text-neutral-500 focus:border-white/18"
+                className="block min-h-[132px] w-full resize-none rounded-[24px] border border-white/8 bg-black/25 px-5 py-4 text-[15px] leading-7 text-white outline-none transition-colors placeholder:text-neutral-500 focus:border-white/18"
                 onKeyDown={(e) => {
                   if (mentionState && filteredReferenceImages.length > 0) {
                     if (e.key === 'ArrowDown') {
