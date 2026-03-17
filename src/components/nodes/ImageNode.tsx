@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Handle, Position, NodeProps, Node, useReactFlow } from '@xyflow/react';
-import { UploadCloud, Send, Mic, Sparkles, Layout, Image as ImageIcon, Trash2, Download, Video as VideoIcon, Clock, Sparkle, Layers3, X, Plus } from 'lucide-react';
+import { UploadCloud, Send, Mic, Sparkles, Layout, Image as ImageIcon, Trash2, Download, Video as VideoIcon, Clock, Sparkle, Layers3, X, Plus, Expand } from 'lucide-react';
 import clsx from 'clsx';
 import { createPortal } from 'react-dom';
 
@@ -16,22 +16,30 @@ export type ReferenceImageOption = {
 export type ImageNodeData = {
   imageSrc?: string;
   isLoading?: boolean;
+  title?: string;
   prompt?: string;
   aspectRatio?: number | string;
   error?: string;
   generationParams?: any;
   referenceImages?: ReferenceImageOption[];
+  isOutputConnectorActive?: boolean;
+  isConnectionTargetMode?: boolean;
   onGenerate?: (nodeId: string, prompt: string, params?: any) => void;
   onCreateLinkedImageNode?: (nodeId: string, direction: LinkedImageDirection) => void;
 };
 
 export type ImageNodeType = Node<ImageNodeData, 'imageNode'>;
 
+function escapeRegExp(value: string) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
 export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
   const { setNodes, setEdges, updateNodeData } = useReactFlow();
-  const [prompt, setPrompt] = useState('');
+  const [prompt, setPrompt] = useState(() => (typeof data.prompt === 'string' ? data.prompt : ''));
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const promptMirrorRef = useRef<HTMLDivElement>(null);
   const [isRecording, setIsRecording] = useState(false);
   const recognitionRef = useRef<any>(null);
   const promptRef = useRef(prompt);
@@ -46,6 +54,12 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
   const [targetType, setTargetType] = useState<'image' | 'video'>('image');
   const [videoDuration, setVideoDuration] = useState('4');
   const referenceImages = data.referenceImages || [];
+  const outputDragStateRef = useRef<{ pointerId: number | null; startX: number; startY: number; moved: boolean }>({
+    pointerId: null,
+    startX: 0,
+    startY: 0,
+    moved: false,
+  });
 
   // Sync state when type changes
   useEffect(() => {
@@ -66,16 +80,19 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
   }, [prompt]);
 
   useEffect(() => {
+    if (typeof data.prompt === 'string' && data.prompt !== promptRef.current) {
+      setPrompt(data.prompt);
+    }
+  }, [data.prompt]);
+
+  useEffect(() => {
     if (!selected) {
       setMentionState(null);
       setActiveMentionIndex(0);
     }
   }, [selected]);
 
-  const startRecording = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
+  const startRecording = useCallback(() => {
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       alert('Your browser does not support Speech Recognition.');
@@ -114,9 +131,7 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
     }
   }, []);
 
-  const stopRecording = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
+  const stopRecording = useCallback(() => {
     if (recognitionRef.current) {
       try {
         recognitionRef.current.stop();
@@ -124,6 +139,18 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
       setIsRecording(false);
     }
   }, []);
+
+  const toggleRecording = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (isRecording) {
+      stopRecording();
+      return;
+    }
+
+    startRecording();
+  }, [isRecording, startRecording, stopRecording]);
 
   useEffect(() => {
     if (selected && data.imageSrc && !data.isLoading) {
@@ -172,7 +199,6 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
 
     if (data.onGenerate) {
       data.onGenerate(id, prompt, { model, aspectRatio, resolution, quantity, targetType, videoDuration });
-      setPrompt('');
     }
   };
 
@@ -210,6 +236,49 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
     });
   }, [mentionState, referenceImages]);
 
+  const highlightedPromptSegments = useMemo(() => {
+    if (!prompt) return [];
+
+    const labelMap = new Map<string, ReferenceImageOption>();
+    referenceImages.forEach((reference) => {
+      const label = reference.label.trim();
+      if (!label || labelMap.has(label)) return;
+      labelMap.set(label, reference);
+    });
+
+    const labels = Array.from(labelMap.keys()).sort((a, b) => b.length - a.length);
+    if (labels.length === 0) {
+      return [{ type: 'text' as const, value: prompt }];
+    }
+
+    const matcher = new RegExp(labels.map(escapeRegExp).join('|'), 'g');
+    const segments: Array<
+      | { type: 'text'; value: string }
+      | { type: 'reference'; value: string; reference: ReferenceImageOption }
+    > = [];
+    let lastIndex = 0;
+
+    for (const match of prompt.matchAll(matcher)) {
+      const index = match.index ?? 0;
+      const value = match[0];
+      const reference = labelMap.get(value);
+      if (!reference) continue;
+
+      if (index > lastIndex) {
+        segments.push({ type: 'text', value: prompt.slice(lastIndex, index) });
+      }
+
+      segments.push({ type: 'reference', value, reference });
+      lastIndex = index + value.length;
+    }
+
+    if (lastIndex < prompt.length) {
+      segments.push({ type: 'text', value: prompt.slice(lastIndex) });
+    }
+
+    return segments.length > 0 ? segments : [{ type: 'text' as const, value: prompt }];
+  }, [prompt, referenceImages]);
+
   const insertReference = useCallback((reference: ReferenceImageOption) => {
     if (!mentionState) return;
 
@@ -227,6 +296,12 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
       inputRef.current?.setSelectionRange(nextCaretPosition, nextCaretPosition);
     });
   }, [mentionState, prompt]);
+
+  const syncPromptMirrorScroll = useCallback((element: HTMLTextAreaElement | null) => {
+    if (!element || !promptMirrorRef.current) return;
+    promptMirrorRef.current.scrollTop = element.scrollTop;
+    promptMirrorRef.current.scrollLeft = element.scrollLeft;
+  }, []);
 
   const handleDelete = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -261,53 +336,137 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
     data.onCreateLinkedImageNode?.(id, direction);
   }, [data, id]);
 
+  const handleOutputPointerDownCapture = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    outputDragStateRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      moved: false,
+    };
+  }, []);
+
+  const handleOutputPointerMoveCapture = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    if (outputDragStateRef.current.pointerId !== event.pointerId) {
+      return;
+    }
+
+    if (Math.hypot(event.clientX - outputDragStateRef.current.startX, event.clientY - outputDragStateRef.current.startY) > 6) {
+      outputDragStateRef.current.moved = true;
+    }
+  }, []);
+
+  const resetOutputPointerState = useCallback((pointerId: number) => {
+    if (outputDragStateRef.current.pointerId !== pointerId) {
+      return;
+    }
+
+    window.setTimeout(() => {
+      outputDragStateRef.current.pointerId = null;
+      outputDragStateRef.current.moved = false;
+    }, 0);
+  }, []);
+
+  const handleOutputPointerUpCapture = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    resetOutputPointerState(event.pointerId);
+  }, [resetOutputPointerState]);
+
+  const handleOutputPointerCancelCapture = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    resetOutputPointerState(event.pointerId);
+  }, [resetOutputPointerState]);
+
+  const handleOutputClick = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    event.stopPropagation();
+
+    if (outputDragStateRef.current.moved) {
+      outputDragStateRef.current.moved = false;
+      return;
+    }
+
+    data.onCreateLinkedImageNode?.(id, 'output');
+  }, [data, id]);
+
   return (
     <div className={clsx(
-      "relative transition-all duration-200",
-      selected ? "ring-2 ring-blue-500/50 rounded-2xl" : ""
+      "relative rounded-2xl transition-all duration-200",
+      selected ? "ring-2 ring-blue-500/50" : "",
+      data.isConnectionTargetMode ? "ring-2 ring-sky-400/55 shadow-[0_0_42px_rgba(56,189,248,0.2)]" : ""
     )}>
       {selected && (
         <>
           <button
             type="button"
             onClick={handleCreateLinkedImageNode('input')}
-            className="absolute left-[-24px] top-1/2 z-40 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-[#202020]/95 text-white shadow-xl backdrop-blur-md transition-all hover:scale-105 hover:bg-[#2a2a2a]"
+            className={clsx(
+              "absolute left-[-24px] top-1/2 z-40 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border bg-[#202020]/95 text-white shadow-xl backdrop-blur-md transition-all hover:scale-105",
+              data.isConnectionTargetMode
+                ? "animate-pulse border-sky-300/70 bg-sky-500/18 text-sky-50 shadow-[0_0_0_1px_rgba(147,197,253,0.22),0_0_32px_rgba(59,130,246,0.3)]"
+                : "border-white/20 hover:bg-[#2a2a2a]"
+            )}
             title="添加参考图像节点"
           >
             <Plus className="h-5 w-5" />
           </button>
 
-          <button
-            type="button"
-            onClick={handleCreateLinkedImageNode('output')}
-            className="absolute right-[-24px] top-1/2 z-40 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-white/20 bg-[#202020]/95 text-white shadow-xl backdrop-blur-md transition-all hover:scale-105 hover:bg-[#2a2a2a]"
+          <div
+            className={clsx(
+              "absolute right-[-24px] top-1/2 z-40 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border bg-[#202020]/95 text-white shadow-xl backdrop-blur-md transition-all hover:scale-105",
+              data.isOutputConnectorActive
+                ? "border-sky-300/65 bg-sky-500/18 text-sky-50 shadow-[0_0_0_1px_rgba(147,197,253,0.22),0_0_32px_rgba(59,130,246,0.28)]"
+                : "border-white/20 hover:bg-[#2a2a2a]"
+            )}
+            onPointerDownCapture={handleOutputPointerDownCapture}
+            onPointerMoveCapture={handleOutputPointerMoveCapture}
+            onPointerUpCapture={handleOutputPointerUpCapture}
+            onPointerCancelCapture={handleOutputPointerCancelCapture}
+            onClick={handleOutputClick}
             title="基于当前图像新建节点"
           >
             <Plus className="h-5 w-5" />
-          </button>
+            <Handle
+              id="output-plus"
+              type="source"
+              position={Position.Right}
+              className="!absolute !border-0 !bg-transparent !opacity-0"
+              style={{
+                inset: 0,
+                width: '100%',
+                height: '100%',
+                transform: 'none',
+                background: 'transparent',
+                border: 'none',
+              }}
+              isConnectableStart
+            />
+          </div>
         </>
       )}
 
-      <Handle type="target" position={Position.Left} className="w-3 h-3 bg-blue-500 border-2 border-gray-900" />
+      <Handle
+        type="target"
+        position={Position.Left}
+        className={clsx(
+          "w-3 h-3 border-2 border-gray-900 transition-all",
+          data.isConnectionTargetMode
+            ? "animate-pulse bg-sky-300 shadow-[0_0_0_6px_rgba(56,189,248,0.18),0_0_24px_rgba(56,189,248,0.45)]"
+            : "bg-blue-500"
+        )}
+      />
       
       {/* Title */}
       <div className="absolute -top-6 left-0 text-xs text-neutral-400 flex items-center gap-1 max-w-full overflow-hidden whitespace-nowrap text-ellipsis">
         <ImageIcon className="w-3 h-3 shrink-0" />
-        <span className="truncate">{data.prompt || 'Image'}</span>
+        <span className="truncate">{data.title || 'Image'}</span>
       </div>
 
-      {/* Delete and Download Buttons */}
+      {data.isConnectionTargetMode && (
+        <div className="pointer-events-none absolute -top-8 left-1/2 z-30 -translate-x-1/2 rounded-full border border-sky-300/35 bg-sky-500/12 px-3 py-1 text-[10px] font-medium tracking-[0.18em] text-sky-100 shadow-[0_10px_24px_rgba(14,165,233,0.18)] backdrop-blur-md">
+          CONNECT AS REFERENCE
+        </div>
+      )}
+
+      {/* Delete Button */}
       {selected && (
         <div className="absolute -top-3 -right-3 flex gap-2 z-50">
-          {data.imageSrc && !data.isLoading && (
-            <button
-              onClick={handleDownload}
-              className="bg-white/10 hover:bg-white/20 text-white p-1.5 rounded-full shadow-lg transition-colors border border-white/10 backdrop-blur-md"
-              title="Download Image"
-            >
-              <Download className="w-3.5 h-3.5" />
-            </button>
-          )}
           <button
             onClick={handleDelete}
             className="bg-white/10 hover:bg-white/20 p-1.5 rounded-full shadow-lg transition-colors border border-white/10 backdrop-blur-md"
@@ -336,12 +495,21 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
 
       {/* Main Image Container */}
       <div 
-        className="relative bg-[#1A1A1A] rounded-2xl overflow-hidden border border-white/10 flex items-center justify-center"
+        className={clsx(
+          "relative flex items-center justify-center overflow-hidden rounded-2xl border bg-[#1A1A1A]",
+          data.isConnectionTargetMode
+            ? "border-sky-300/55 shadow-[inset_0_0_0_1px_rgba(125,211,252,0.18)]"
+            : "border-white/10"
+        )}
         style={{ 
           width: '280px', 
           aspectRatio: data.aspectRatio || '3/4' 
         }}
       >
+        {data.isConnectionTargetMode && (
+          <div className="pointer-events-none absolute inset-2 z-10 rounded-[18px] border border-dashed border-sky-300/40 bg-sky-400/[0.03]" />
+        )}
+
         {data.isLoading ? (
           <div className="absolute inset-0 z-20 overflow-hidden bg-[#2A2A2A]">
             <div className="absolute inset-0 w-full h-full bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
@@ -349,19 +517,41 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
         ) : null}
 
         {data.imageSrc ? (
-          <img
-            src={data.imageSrc}
-            alt="Node content"
-            className="w-full h-full cursor-zoom-in object-cover animate-fade-in"
-            onClick={handlePreviewOpen}
-            onLoad={(e) => {
-              const img = e.target as HTMLImageElement;
-              const ratio = img.naturalWidth / img.naturalHeight;
-              if (!data.aspectRatio || Math.abs(Number(data.aspectRatio) - ratio) > 0.01) {
-                updateNodeData(id, { aspectRatio: ratio });
-              }
-            }}
-          />
+          <>
+            <img
+              src={data.imageSrc}
+              alt="Node content"
+              className="h-full w-full cursor-pointer object-cover animate-fade-in"
+              onLoad={(e) => {
+                const img = e.target as HTMLImageElement;
+                const ratio = img.naturalWidth / img.naturalHeight;
+                if (!data.aspectRatio || Math.abs(Number(data.aspectRatio) - ratio) > 0.01) {
+                  updateNodeData(id, { aspectRatio: ratio });
+                }
+              }}
+            />
+
+            {selected && !data.isLoading && (
+              <div className="absolute bottom-3 right-3 z-40 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handlePreviewOpen}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-white/12 bg-black/45 text-white shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-md transition-all hover:scale-[1.03] hover:bg-black/60"
+                  title="查看大图"
+                >
+                  <Expand className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDownload}
+                  className="flex h-10 w-10 items-center justify-center rounded-full border border-white/12 bg-black/45 text-white shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-md transition-all hover:scale-[1.03] hover:bg-black/60"
+                  title="下载图像"
+                >
+                  <Download className="h-4 w-4" />
+                </button>
+              </div>
+            )}
+          </>
         ) : !data.isLoading ? (
           <div className="absolute inset-2 flex flex-col items-center justify-center border-2 border-dashed border-white/5 rounded-lg p-4 text-center">
             {data.error ? (
@@ -423,52 +613,81 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
                 </div>
               )}
 
-              <textarea
-                ref={inputRef}
-                value={prompt}
-                onChange={(e) => {
-                  const nextPrompt = e.target.value;
-                  setPrompt(nextPrompt);
-                  syncMentionState(nextPrompt, e.target.selectionStart ?? nextPrompt.length);
-                }}
-                onClick={(e) => syncMentionState(e.currentTarget.value, e.currentTarget.selectionStart ?? e.currentTarget.value.length)}
-                onKeyUp={(e) => syncMentionState(e.currentTarget.value, e.currentTarget.selectionStart ?? e.currentTarget.value.length)}
-                placeholder="描述任何你想要生成的内容，按 @ 引用素材"
-                className="block min-h-[132px] w-full resize-none rounded-[24px] border border-white/8 bg-black/25 px-5 py-4 text-[15px] leading-7 text-white outline-none transition-colors placeholder:text-neutral-500 focus:border-white/18"
-                onKeyDown={(e) => {
-                  if (mentionState && filteredReferenceImages.length > 0) {
-                    if (e.key === 'ArrowDown') {
-                      e.preventDefault();
-                      setActiveMentionIndex((index) => (index + 1) % filteredReferenceImages.length);
-                      return;
+              <div className="relative">
+                <div
+                  ref={promptMirrorRef}
+                  aria-hidden="true"
+                  className="pointer-events-none absolute inset-0 overflow-auto rounded-[24px] px-5 py-4 text-[15px] leading-7 text-neutral-100 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                >
+                  <div className="min-h-[calc(132px-2rem)] whitespace-pre-wrap break-words">
+                    {prompt ? highlightedPromptSegments.map((segment, index) => {
+                      if (segment.type === 'text') {
+                        return <React.Fragment key={`text-${index}`}>{segment.value}</React.Fragment>;
+                      }
+
+                      return (
+                        <span
+                          key={`reference-${segment.reference.nodeId}-${index}`}
+                          className="mx-[1px] inline-flex items-center gap-1.5 rounded-[14px] border border-sky-400/40 bg-[linear-gradient(180deg,rgba(44,83,154,0.42),rgba(28,50,99,0.72))] px-2.5 py-1 align-baseline text-[0.95em] font-semibold leading-none text-sky-50 shadow-[0_0_0_1px_rgba(59,130,246,0.14),inset_0_1px_0_rgba(255,255,255,0.12)]"
+                        >
+                          <span className="flex h-4.5 w-4.5 items-center justify-center rounded-full bg-sky-950/55 text-sky-200">
+                            <ImageIcon className="h-3 w-3" />
+                          </span>
+                          <span>{segment.value}</span>
+                        </span>
+                      );
+                    }) : null}
+                  </div>
+                </div>
+
+                <textarea
+                  ref={inputRef}
+                  value={prompt}
+                  onChange={(e) => {
+                    const nextPrompt = e.target.value;
+                    setPrompt(nextPrompt);
+                    syncMentionState(nextPrompt, e.target.selectionStart ?? nextPrompt.length);
+                  }}
+                  onClick={(e) => syncMentionState(e.currentTarget.value, e.currentTarget.selectionStart ?? e.currentTarget.value.length)}
+                  onKeyUp={(e) => syncMentionState(e.currentTarget.value, e.currentTarget.selectionStart ?? e.currentTarget.value.length)}
+                  onScroll={(e) => syncPromptMirrorScroll(e.currentTarget)}
+                  placeholder="描述任何你想要生成的内容，按 @ 引用素材"
+                  className="relative block min-h-[132px] w-full resize-none rounded-[24px] border border-white/8 bg-black/25 px-5 py-4 text-[15px] leading-7 text-transparent outline-none transition-colors [-webkit-text-fill-color:transparent] caret-white placeholder:text-neutral-500 focus:border-white/18"
+                  onKeyDown={(e) => {
+                    if (mentionState && filteredReferenceImages.length > 0) {
+                      if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        setActiveMentionIndex((index) => (index + 1) % filteredReferenceImages.length);
+                        return;
+                      }
+
+                      if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        setActiveMentionIndex((index) => (index - 1 + filteredReferenceImages.length) % filteredReferenceImages.length);
+                        return;
+                      }
+
+                      if (e.key === 'Enter' || e.key === 'Tab') {
+                        e.preventDefault();
+                        insertReference(filteredReferenceImages[activeMentionIndex]);
+                        return;
+                      }
+
+                      if (e.key === 'Escape') {
+                        e.preventDefault();
+                        setMentionState(null);
+                        return;
+                      }
                     }
 
-                    if (e.key === 'ArrowUp') {
+                    if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
-                      setActiveMentionIndex((index) => (index - 1 + filteredReferenceImages.length) % filteredReferenceImages.length);
-                      return;
+                      handleGenerate(e);
                     }
-
-                    if (e.key === 'Enter' || e.key === 'Tab') {
-                      e.preventDefault();
-                      insertReference(filteredReferenceImages[activeMentionIndex]);
-                      return;
-                    }
-
-                    if (e.key === 'Escape') {
-                      e.preventDefault();
-                      setMentionState(null);
-                      return;
-                    }
-                  }
-
-                  if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    handleGenerate(e);
-                  }
-                  e.stopPropagation();
-                }}
-              />
+                    e.stopPropagation();
+                  }}
+                />
+              </div>
 
               {mentionState && filteredReferenceImages.length > 0 && (
                 <div className="absolute right-0 top-[calc(100%+12px)] z-[70] min-w-[280px] overflow-hidden rounded-[24px] border border-white/10 bg-[#2A2A2E]/95 p-2 shadow-[0_18px_60px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
@@ -639,11 +858,7 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
             <div className="flex shrink-0 items-center gap-2">
               <button
                 type="button"
-                onMouseDown={startRecording}
-                onMouseUp={stopRecording}
-                onMouseLeave={stopRecording}
-                onTouchStart={startRecording}
-                onTouchEnd={stopRecording}
+                onClick={toggleRecording}
                 className={clsx(
                   "flex h-10 w-10 items-center justify-center rounded-full border transition-all",
                   isRecording
@@ -671,8 +886,6 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
           </div>
         </div>
       )}
-
-      <Handle type="source" position={Position.Right} className="w-3 h-3 bg-blue-500 border-2 border-gray-900" />
 
       {isPreviewOpen && data.imageSrc && createPortal(
         <div

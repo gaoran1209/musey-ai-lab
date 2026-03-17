@@ -3,9 +3,9 @@ import {
   ReactFlow,
   Background,
   Controls,
+  ConnectionLineType,
   applyNodeChanges,
   applyEdgeChanges,
-  addEdge,
   Node,
   Edge,
   NodeChange,
@@ -33,6 +33,8 @@ const DEFAULT_VIDEO_MODEL = 'veo-3.1-generate-preview';
 const VIDEO_POLL_INTERVAL_MS = 10000;
 const VIDEO_POLL_MAX_ATTEMPTS = 60;
 const REFERENCE_IMAGE_LIMIT = 6;
+const REFERENCE_EDGE_STYLE = { stroke: 'rgba(255,255,255,0.38)', opacity: 1, strokeWidth: 2.25 };
+const ACTIVE_CONNECTION_LINE_STYLE = { stroke: 'rgba(96,165,250,0.95)', strokeWidth: 2.5, strokeDasharray: '6 6' };
 
 function sleep(ms: number) {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
@@ -147,6 +149,20 @@ function createImageNode(position: { x: number; y: number }, onGenerate: (nodeId
   };
 }
 
+function getGeneratedNodeTitle(targetType: 'image' | 'video', index: number) {
+  return targetType === 'video' ? `生成视频结果 ${index}` : `生成图像结果 ${index}`;
+}
+
+function createReferenceEdge(source: string, target: string): Edge {
+  return {
+    id: `e-${source}-${target}`,
+    source,
+    target,
+    animated: false,
+    style: REFERENCE_EDGE_STYLE,
+  };
+}
+
 function Flow() {
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
@@ -155,6 +171,7 @@ function Flow() {
   const { addRecord, updateRecord } = useHistory();
   const [menuPos, setMenuPos] = useState<{x: number, y: number} | null>(null);
   const [menuFlowPos, setMenuFlowPos] = useState<{x: number, y: number} | null>(null);
+  const [activeOutputConnectorNodeId, setActiveOutputConnectorNodeId] = useState<string | null>(null);
 
   const onNodesChange = useCallback(
     (changes: NodeChange[]) => setNodes((nds) => applyNodeChanges(changes, nds)),
@@ -166,14 +183,47 @@ function Flow() {
     []
   );
   
-  const onConnect = useCallback(
-    (params: Connection) => setEdges((eds) => addEdge({ 
-      ...params, 
-      animated: true, 
-      style: { stroke: '#ffffff', opacity: 0.5, strokeWidth: 2 } 
-    } as any, eds)),
-    []
+  const isValidConnection = useCallback(
+    (connection: Connection | Edge) => {
+      if (!connection.source || !connection.target || connection.source === connection.target) {
+        return false;
+      }
+
+      const sourceNode = getNode(connection.source);
+      const targetNode = getNode(connection.target);
+      if (!sourceNode || !targetNode) {
+        return false;
+      }
+
+      if (sourceNode.type !== 'imageNode' || targetNode.type !== 'imageNode') {
+        return false;
+      }
+
+      return !edges.some((edge) => edge.source === connection.source && edge.target === connection.target);
+    },
+    [edges, getNode]
   );
+
+  const onConnect = useCallback(
+    (params: Connection) => {
+      if (!isValidConnection(params)) {
+        return;
+      }
+
+      setEdges((eds) => eds.concat(createReferenceEdge(params.source!, params.target!)));
+    },
+    [isValidConnection]
+  );
+
+  const onConnectStart = useCallback((_: React.MouseEvent | React.TouchEvent, params: { nodeId?: string | null; handleType?: string | null; handleId?: string | null }) => {
+    if (params.handleType === 'source' && params.handleId === 'output-plus' && params.nodeId) {
+      setActiveOutputConnectorNodeId(params.nodeId);
+    }
+  }, []);
+
+  const onConnectEnd = useCallback(() => {
+    setActiveOutputConnectorNodeId(null);
+  }, []);
 
   const handleGenerate = useCallback(
     async (nodeId: string, prompt: string, params?: any) => {
@@ -209,6 +259,7 @@ function Flow() {
             position: { x: node.position.x + 350, y: node.position.y + i * 320 },
             data: {
               isLoading: true,
+              title: getGeneratedNodeTitle(targetType, i + 1),
               prompt,
               aspectRatio: aspectRatio.replace(':', '/'),
               onGenerate: handleGenerate,
@@ -232,6 +283,7 @@ function Flow() {
             ...n.data,
             isLoading: true,
             error: undefined,
+            title: getGeneratedNodeTitle(targetType, 1),
             prompt,
             aspectRatio: aspectRatio.replace(':', '/'),
             onGenerate: handleGenerate,
@@ -248,6 +300,7 @@ function Flow() {
             position: { x: node.position.x + 350, y: node.position.y + i * 320 },
             data: {
               isLoading: true,
+              title: getGeneratedNodeTitle(targetType, i + 1),
               prompt,
               aspectRatio: aspectRatio.replace(':', '/'),
               onGenerate: handleGenerate,
@@ -443,13 +496,10 @@ function Flow() {
         y: currentNode.position.y + verticalOffset,
       };
       const newNode = createImageNode(position, handleGenerate);
-      const newEdge: Edge = {
-        id: `e-${direction === 'input' ? newNode.id : nodeId}-${direction === 'input' ? nodeId : newNode.id}`,
-        source: direction === 'input' ? newNode.id : nodeId,
-        target: direction === 'input' ? nodeId : newNode.id,
-        animated: true,
-        style: { stroke: '#ffffff', opacity: 0.5, strokeWidth: 2 },
-      };
+      const newEdge = createReferenceEdge(
+        direction === 'input' ? newNode.id : nodeId,
+        direction === 'input' ? nodeId : newNode.id
+      );
 
       setNodes((nds) => nds.concat(newNode));
       setEdges((eds) => eds.concat(newEdge));
@@ -549,6 +599,8 @@ function Flow() {
           onGenerate: handleGenerate,
           referenceImages: getReferenceImages(node.id, nodes, edges),
           onCreateLinkedImageNode: handleCreateLinkedImageNode,
+          isOutputConnectorActive: activeOutputConnectorNodeId === node.id,
+          isConnectionTargetMode: activeOutputConnectorNodeId !== null && activeOutputConnectorNodeId !== node.id,
         },
       };
     }
@@ -574,10 +626,15 @@ function Flow() {
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
+        onConnectStart={onConnectStart}
+        onConnectEnd={onConnectEnd}
+        isValidConnection={isValidConnection}
         onDragOver={onDragOver}
         onDrop={onDrop}
         onPaneClick={onPaneClick}
         nodeTypes={nodeTypes}
+        connectionLineType={ConnectionLineType.Bezier}
+        connectionLineStyle={ACTIVE_CONNECTION_LINE_STYLE}
         fitView
         fitViewOptions={{ padding: 1.2, minZoom: 0.2, maxZoom: 1 }}
         colorMode="dark"
