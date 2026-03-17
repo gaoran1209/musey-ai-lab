@@ -9,8 +9,8 @@
 - 节点式无限画布：支持平移、缩放、连接节点，适合把参考图、结果图和后续变体串起来。
 - 图像节点与视频节点：可以从左侧面板直接新增两种节点。
 - Gemini / Veo 模型接入：
-  - `gemini-3.1-image-flash-preview` 前台显示为 `Nano Banana 2`
-  - `gemini-2.5-image-flash` 前台显示为 `Nano Banana`
+  - `gemini-3.1-flash-image-preview` 前台显示为 `Nano Banana 2`
+  - `gemini-2.5-flash-image` 前台显示为 `Nano Banana`
   - `gemini-3-pro-image-preview` 前台显示为 `Nano Banana Pro`
   - `veo-3.1-generate-preview` 用于视频生成
 - 本地 API Key 保存：在侧栏用户菜单中输入并点击保存，只保存在当前浏览器 `localStorage`。

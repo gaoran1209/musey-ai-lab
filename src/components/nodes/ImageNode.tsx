@@ -48,7 +48,7 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
   const [mentionState, setMentionState] = useState<{ start: number; end: number; query: string } | null>(null);
   const [activeMentionIndex, setActiveMentionIndex] = useState(0);
 
-  const [model, setModel] = useState('gemini-3.1-image-flash-preview');
+  const [model, setModel] = useState('gemini-3.1-flash-image-preview');
   const [aspectRatio, setAspectRatio] = useState('3:4');
   const [resolution, setResolution] = useState('2K');
   const [quantity, setQuantity] = useState(1);
@@ -70,7 +70,7 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
       setResolution('720p');
       setQuantity(1);
     } else {
-      setModel('gemini-3.1-image-flash-preview');
+      setModel('gemini-3.1-flash-image-preview');
       setAspectRatio('3:4');
       setResolution('2K');
     }
@@ -805,8 +805,8 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
                       <option value="veo-3.1-generate-preview" className="bg-[#1C1C1C]">Veo 3.1 Preview</option>
                     ) : (
                       <>
-                        <option value="gemini-3.1-image-flash-preview" className="bg-[#1C1C1C]">Nano Banana 2</option>
-                        <option value="gemini-2.5-image-flash" className="bg-[#1C1C1C]">Nano Banana</option>
+                        <option value="gemini-3.1-flash-image-preview" className="bg-[#1C1C1C]">Nano Banana 2</option>
+                        <option value="gemini-2.5-flash-image" className="bg-[#1C1C1C]">Nano Banana</option>
                         <option value="gemini-3-pro-image-preview" className="bg-[#1C1C1C]">Nano Banana Pro</option>
                       </>
                     )}

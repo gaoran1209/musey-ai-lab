@@ -13,7 +13,7 @@ export async function generateImageEdit(base64Data: string, mimeType: string, pr
   const base64String = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3.1-image-flash-preview',
+    model: 'gemini-3.1-flash-image-preview',
     contents: {
       parts: [
         {

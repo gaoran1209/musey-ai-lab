@@ -28,7 +28,7 @@ const nodeTypes = {
   videoNode: VideoNode,
 };
 
-const DEFAULT_IMAGE_MODEL = 'gemini-3.1-image-flash-preview';
+const DEFAULT_IMAGE_MODEL = 'gemini-3.1-flash-image-preview';
 const DEFAULT_VIDEO_MODEL = 'veo-3.1-generate-preview';
 const VIDEO_POLL_INTERVAL_MS = 10000;
 const VIDEO_POLL_MAX_ATTEMPTS = 60;
