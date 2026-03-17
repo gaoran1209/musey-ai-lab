@@ -491,6 +491,20 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
             : "bg-blue-500"
         )}
       />
+
+      <Handle
+        type="source"
+        position={Position.Right}
+        className="!h-3 !w-3 !border-0 !bg-transparent !opacity-0"
+        style={{
+          right: -6,
+          transform: 'translateY(-50%)',
+          pointerEvents: 'none',
+          background: 'transparent',
+          border: 'none',
+        }}
+        isConnectableStart={false}
+      />
       
       {/* Title */}
       <div className="absolute -top-6 left-0 text-xs text-neutral-400 flex items-center gap-1 max-w-full overflow-hidden whitespace-nowrap text-ellipsis">
