@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Handle, Position, NodeProps, Node, useReactFlow } from '@xyflow/react';
-import { UploadCloud, Send, Mic, Sparkles, Layout, Image as ImageIcon, Trash2, Download, Video as VideoIcon, Clock, Sparkle, Layers3, X, Plus, Expand } from 'lucide-react';
+import { UploadCloud, Send, Mic, Sparkles, Layout, Image as ImageIcon, Trash2, Download, Video as VideoIcon, Clock, Sparkle, Layers3, X, Plus, Expand, UserRound, Palette, Shirt, ChevronRight, Check } from 'lucide-react';
 import clsx from 'clsx';
 import { createPortal } from 'react-dom';
 import { v4 as uuidv4 } from 'uuid';
+import { type SkillType, type SkillExecuteOptions, SKILL_MODES, TRYON_TAG_OPTIONS } from '../../services/skillPrompts';
 
 export type LinkedImageDirection = 'input' | 'output';
 
@@ -25,8 +26,10 @@ export type ImageNodeData = {
   referenceImages?: ReferenceImageOption[];
   isOutputConnectorActive?: boolean;
   isConnectionTargetMode?: boolean;
+  isAnyConnectionActive?: boolean;
   onGenerate?: (nodeId: string, prompt: string, params?: any) => void;
   onCreateLinkedImageNode?: (nodeId: string, direction: LinkedImageDirection) => void;
+  onSkillExecute?: (nodeId: string, skillType: SkillType, options?: SkillExecuteOptions) => void;
 };
 
 export type ImageNodeType = Node<ImageNodeData, 'imageNode'>;
@@ -54,6 +57,9 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
   const [quantity, setQuantity] = useState(1);
   const [targetType, setTargetType] = useState<'image' | 'video'>('image');
   const [videoDuration, setVideoDuration] = useState('4');
+  const [activeSkillMenu, setActiveSkillMenu] = useState<SkillType | null>(null);
+  const [tryonTags, setTryonTags] = useState<Record<string, string>>({});
+
   const referenceImages = data.referenceImages || [];
   const outputDragStateRef = useRef<{ pointerId: number | null; startX: number; startY: number; moved: boolean }>({
     pointerId: null,
@@ -90,6 +96,7 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
     if (!selected) {
       setMentionState(null);
       setActiveMentionIndex(0);
+      setActiveSkillMenu(null);
     }
   }, [selected]);
 
@@ -425,6 +432,33 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
     data.onCreateLinkedImageNode?.(id, 'output');
   }, [data, id]);
 
+  const handleSkillButtonClick = useCallback((skillType: SkillType) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (referenceImages.length === 0) return;
+
+    if (skillType === 'tryon') {
+      // Initialize tryon tags with defaults
+      const tags: Record<string, string> = {};
+      referenceImages.forEach((ref, i) => {
+        tags[ref.nodeId] = i === 0 ? '上衣' : i === 1 ? '裤子' : '上衣';
+      });
+      setTryonTags(tags);
+    }
+    setActiveSkillMenu((prev) => (prev === skillType ? null : skillType));
+  }, [referenceImages]);
+
+  const handleSkillModeSelect = useCallback((skillType: SkillType, mode: string) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActiveSkillMenu(null);
+    data.onSkillExecute?.(id, skillType, { mode, batchSize: 1 });
+  }, [data, id]);
+
+  const handleTryonExecute = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActiveSkillMenu(null);
+    data.onSkillExecute?.(id, 'tryon', { tryonTags, batchSize: 1 });
+  }, [data, id, tryonTags]);
+
   return (
     <div className={clsx(
       "relative rounded-2xl transition-all duration-200",
@@ -437,7 +471,7 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
             type="button"
             onClick={handleCreateLinkedImageNode('input')}
             className={clsx(
-              "absolute left-[-24px] top-1/2 z-40 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border bg-[#202020]/95 text-white shadow-xl backdrop-blur-md transition-all hover:scale-105",
+              "absolute left-[-24px] top-1/2 z-[60] flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border bg-[#202020]/95 text-white shadow-xl backdrop-blur-md transition-all hover:scale-105",
               data.isConnectionTargetMode
                 ? "animate-pulse border-sky-300/70 bg-sky-500/18 text-sky-50 shadow-[0_0_0_1px_rgba(147,197,253,0.22),0_0_32px_rgba(59,130,246,0.3)]"
                 : "border-white/20 hover:bg-[#2a2a2a]"
@@ -447,7 +481,7 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
             <Plus className="h-5 w-5" />
           </button>
 
-          <div className="absolute right-[-24px] top-1/2 z-40 h-11 w-11 -translate-y-1/2">
+          <div className="absolute right-[-24px] top-1/2 z-[60] h-11 w-11 -translate-y-1/2">
             <Handle
               id="output-plus"
               type="source"
@@ -508,6 +542,138 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
         <ImageIcon className="w-3 h-3 shrink-0" />
         <span className="truncate">{data.title || 'Image'}</span>
       </div>
+
+      {/* Skill Toolbar */}
+      {selected && data.imageSrc && !data.isLoading && !data.isAnyConnectionActive && (
+        <div className="absolute -top-[52px] left-1/2 -translate-x-1/2 z-40">
+          <div className="flex items-center gap-0.5 rounded-full border border-white/15 bg-[#1c1c20]/92 px-1.5 py-1 shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl">
+            <button
+              type="button"
+              onClick={handleSkillButtonClick('change-model')}
+              className={clsx(
+                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-all whitespace-nowrap",
+                referenceImages.length === 0
+                  ? "text-white/25 cursor-not-allowed"
+                  : activeSkillMenu === 'change-model'
+                    ? "bg-white/15 text-white"
+                    : "text-white/70 hover:bg-white/10 hover:text-white"
+              )}
+              title={referenceImages.length === 0 ? "请先连接参考图像" : "换模特"}
+              disabled={referenceImages.length === 0}
+            >
+              <UserRound className="w-3.5 h-3.5" />
+              <span>换模特</span>
+            </button>
+            <div className="w-px h-4 bg-white/10" />
+            <button
+              type="button"
+              onClick={handleSkillButtonClick('change-background')}
+              className={clsx(
+                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-all whitespace-nowrap",
+                referenceImages.length === 0
+                  ? "text-white/25 cursor-not-allowed"
+                  : activeSkillMenu === 'change-background'
+                    ? "bg-white/15 text-white"
+                    : "text-white/70 hover:bg-white/10 hover:text-white"
+              )}
+              title={referenceImages.length === 0 ? "请先连接参考图像" : "换背景"}
+              disabled={referenceImages.length === 0}
+            >
+              <Palette className="w-3.5 h-3.5" />
+              <span>换背景</span>
+            </button>
+            <div className="w-px h-4 bg-white/10" />
+            <button
+              type="button"
+              onClick={handleSkillButtonClick('tryon')}
+              className={clsx(
+                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-all whitespace-nowrap",
+                referenceImages.length === 0
+                  ? "text-white/25 cursor-not-allowed"
+                  : activeSkillMenu === 'tryon'
+                    ? "bg-white/15 text-white"
+                    : "text-white/70 hover:bg-white/10 hover:text-white"
+              )}
+              title={referenceImages.length === 0 ? "请先连接参考图像" : "虚拟试穿"}
+              disabled={referenceImages.length === 0}
+            >
+              <Shirt className="w-3.5 h-3.5" />
+              <span>TryOn</span>
+            </button>
+          </div>
+
+          {/* Skill Mode Menu (change-background / change-model) */}
+          {activeSkillMenu && activeSkillMenu !== 'tryon' && (
+            <div
+              className="absolute left-1/2 -translate-x-1/2 top-[calc(100%+8px)] z-50 min-w-[220px] overflow-hidden rounded-2xl border border-white/10 bg-[#222226]/95 p-1.5 shadow-[0_18px_60px_rgba(0,0,0,0.5)] backdrop-blur-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {SKILL_MODES[activeSkillMenu].map((modeOption) => (
+                <button
+                  key={modeOption.id}
+                  type="button"
+                  onClick={handleSkillModeSelect(activeSkillMenu, modeOption.id)}
+                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-white/10"
+                >
+                  <ChevronRight className="h-3.5 w-3.5 shrink-0 text-white/40" />
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-white">{modeOption.label}</div>
+                    <div className="text-xs text-neutral-400">{modeOption.desc}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* TryOn Tag Assignment Dialog */}
+          {activeSkillMenu === 'tryon' && (
+            <div
+              className="absolute left-1/2 -translate-x-1/2 top-[calc(100%+8px)] z-50 min-w-[280px] overflow-hidden rounded-2xl border border-white/10 bg-[#222226]/95 p-3 shadow-[0_18px_60px_rgba(0,0,0,0.5)] backdrop-blur-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="mb-2 text-xs font-medium text-neutral-400">
+                为参考图分配服装品类
+              </div>
+              <div className="flex flex-col gap-2">
+                {referenceImages.map((ref) => (
+                  <div key={ref.nodeId} className="flex items-center gap-2">
+                    <img
+                      src={ref.imageSrc}
+                      alt={ref.label}
+                      className="h-10 w-10 shrink-0 rounded-lg object-cover"
+                    />
+                    <span className="min-w-0 flex-1 truncate text-xs text-white/60">
+                      {ref.label}
+                    </span>
+                    <select
+                      value={tryonTags[ref.nodeId] || '上衣'}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        setTryonTags((prev) => ({ ...prev, [ref.nodeId]: e.target.value }));
+                      }}
+                      className="rounded-lg border border-white/10 bg-white/8 px-2 py-1.5 text-xs text-white outline-none"
+                    >
+                      {TRYON_TAG_OPTIONS.map((tag) => (
+                        <option key={tag} value={tag} className="bg-[#1C1C1C]">
+                          {tag}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              </div>
+              <button
+                type="button"
+                onClick={handleTryonExecute}
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-white/12 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/20"
+              >
+                <Check className="h-3.5 w-3.5" />
+                开始试穿
+              </button>
+            </div>
+          )}
+        </div>
+      )}
 
       {data.isConnectionTargetMode && (
         <div className="pointer-events-none absolute -top-8 left-1/2 z-30 -translate-x-1/2 rounded-full border border-sky-300/35 bg-sky-500/12 px-3 py-1 text-[10px] font-medium tracking-[0.18em] text-sky-100 shadow-[0_10px_24px_rgba(14,165,233,0.18)] backdrop-blur-md">
@@ -657,7 +823,10 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
       {/* Floating Input Panel */}
       {selected && (
         <div
-          className="absolute top-[calc(100%+24px)] left-1/2 z-50 flex w-[min(620px,calc(100vw-3rem))] -translate-x-1/2 cursor-default flex-col gap-3 rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(36,36,40,0.96),rgba(20,20,24,0.92))] p-4 shadow-[0_22px_80px_rgba(0,0,0,0.42)] backdrop-blur-3xl"
+          className={clsx(
+            "absolute top-[calc(100%+24px)] left-1/2 z-50 flex w-[min(620px,calc(100vw-3rem))] -translate-x-1/2 cursor-default flex-col gap-3 rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(36,36,40,0.96),rgba(20,20,24,0.92))] p-4 shadow-[0_22px_80px_rgba(0,0,0,0.42)] backdrop-blur-3xl transition-all duration-150",
+            data.isAnyConnectionActive && "pointer-events-none opacity-0 scale-[0.98]"
+          )}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="w-full">

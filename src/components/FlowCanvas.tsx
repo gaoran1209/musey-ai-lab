@@ -22,6 +22,18 @@ import { GoogleGenAI } from '@google/genai';
 import { useHistory } from './HistoryContext';
 import { ImagePlus, Video } from 'lucide-react';
 import { getStoredGeminiApiKey } from '../utils/geminiApiKey';
+import {
+  type SkillType,
+  type SkillExecuteOptions,
+  getSkillTitle,
+  SCENE_EXTRACT_PROMPT,
+  buildAtmosphereBlendPrompt,
+  PRECISE_BG_REPLACE_PROMPT,
+  FACE_SWAP_PROMPT,
+  FEATURES_EXTRACT_PROMPT,
+  buildReplicaPrompt,
+  buildTryonPrompt,
+} from '../services/skillPrompts';
 
 const nodeTypes = {
   imageNode: ImageNode,
@@ -549,6 +561,211 @@ function Flow() {
     [getNode, getNodes, getEdges, addRecord, updateRecord]
   );
 
+  const handleSkillExecute = useCallback(
+    async (nodeId: string, skillType: SkillType, options?: SkillExecuteOptions) => {
+      const node = getNode(nodeId);
+      if (!node || !node.data.imageSrc) return;
+
+      const allNodes = getNodes();
+      const allEdges = getEdges();
+      const refImages = getReferenceImages(nodeId, allNodes, allEdges);
+
+      if (refImages.length === 0) return;
+
+      const apiKey = getStoredGeminiApiKey();
+      if (!apiKey) {
+        console.error('Missing Gemini API key');
+        return;
+      }
+
+      const batchSize = options?.batchSize || 1;
+      const mode = options?.mode || 'precise';
+      const ai = new GoogleGenAI({ apiKey });
+
+      // Create output nodes
+      const outputNodeIds: string[] = [];
+      const newNodes: Node[] = [];
+      const newEdges: Edge[] = [];
+
+      for (let i = 0; i < batchSize; i++) {
+        const outputId = uuidv4();
+        outputNodeIds.push(outputId);
+        newNodes.push({
+          id: outputId,
+          type: 'imageNode',
+          position: { x: node.position.x + 350, y: node.position.y + i * 420 },
+          data: {
+            isLoading: true,
+            title: getSkillTitle(skillType, i + 1),
+            onGenerate: handleGenerate,
+          },
+        });
+        // Edge from source node to output
+        newEdges.push(createReferenceEdge(nodeId, outputId));
+        // Edges from all reference nodes to output
+        refImages.forEach((ref) => {
+          newEdges.push(createReferenceEdge(ref.nodeId, outputId));
+        });
+      }
+
+      setNodes((nds) => nds.concat(newNodes));
+      setEdges((eds) => eds.concat(newEdges));
+
+      // Execute for each output node
+      const executePromises = outputNodeIds.map(async (outputId) => {
+        const historyId = uuidv4();
+        const skillLabel =
+          skillType === 'change-background' ? '换背景' :
+          skillType === 'change-model' ? '换模特' : '试穿';
+        addRecord({
+          id: historyId,
+          requestTime: Date.now(),
+          prompt: `[${skillLabel}] ${mode}`,
+          status: 'pending',
+        });
+
+        try {
+          let prompt: string;
+          let imageSources: string[];
+          let apiModel = 'gemini-3.1-flash-image-preview';
+
+          switch (skillType) {
+            case 'change-background': {
+              if (mode === 'atmosphere') {
+                // Step 1: Extract scene description from background image
+                const sceneResponse = await ai.models.generateContent({
+                  model: 'gemini-3.1-pro-preview',
+                  contents: [
+                    { inlineData: dataUrlToInlineData(refImages[0].imageSrc) },
+                    { text: SCENE_EXTRACT_PROMPT },
+                  ],
+                });
+                const sceneText =
+                  sceneResponse.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+                // Step 2: Generate with atmosphere blend
+                prompt = buildAtmosphereBlendPrompt(sceneText);
+                imageSources = [node.data.imageSrc as string];
+              } else {
+                // Precise replacement: both images in one call
+                prompt = PRECISE_BG_REPLACE_PROMPT;
+                imageSources = [node.data.imageSrc as string, refImages[0].imageSrc];
+              }
+              break;
+            }
+
+            case 'change-model': {
+              if (mode === 'replica') {
+                // Step 1: Extract features from original image
+                const featuresResponse = await ai.models.generateContent({
+                  model: 'gemini-3.1-pro-preview',
+                  contents: [
+                    { inlineData: dataUrlToInlineData(node.data.imageSrc as string) },
+                    { text: FEATURES_EXTRACT_PROMPT },
+                  ],
+                });
+                const featuresText =
+                  featuresResponse.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+                // Step 2: Generate with extracted features + target face
+                prompt = buildReplicaPrompt(featuresText);
+                imageSources = [node.data.imageSrc as string, refImages[0].imageSrc];
+              } else {
+                // Face swap: both images in one call
+                prompt = FACE_SWAP_PROMPT;
+                imageSources = [node.data.imageSrc as string, refImages[0].imageSrc];
+              }
+              break;
+            }
+
+            case 'tryon': {
+              const tags = options?.tryonTags || {};
+              const taggedRefs = refImages.map((ref) => ({
+                label: ref.label,
+                tag: tags[ref.nodeId] || '上衣',
+              }));
+              prompt = buildTryonPrompt(taggedRefs);
+              imageSources = [
+                node.data.imageSrc as string,
+                ...refImages.map((r) => r.imageSrc),
+              ];
+              break;
+            }
+
+            default:
+              throw new Error(`Unknown skill type: ${skillType}`);
+          }
+
+          // Build contents array
+          const contents: any[] = imageSources.map((src) => ({
+            inlineData: dataUrlToInlineData(src),
+          }));
+          contents.push({ text: prompt });
+
+          const response = await ai.models.generateContent({
+            model: apiModel,
+            contents: contents as any,
+            config: {
+              imageConfig: {
+                aspectRatio: '3:4',
+                imageSize: '2K',
+              },
+            },
+          });
+
+          let resultSrc = '';
+          if (response.candidates?.[0]?.content?.parts) {
+            for (const part of response.candidates[0].content.parts) {
+              if (part.inlineData) {
+                resultSrc = `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+                break;
+              }
+            }
+          }
+
+          if (!resultSrc) {
+            throw new Error('No image generated');
+          }
+
+          setNodes((nds) =>
+            nds.map((n) =>
+              n.id === outputId
+                ? { ...n, data: { ...n.data, isLoading: false, error: undefined, imageSrc: resultSrc } }
+                : n
+            )
+          );
+
+          updateRecord(historyId, {
+            status: 'success',
+            responseTime: Date.now(),
+          });
+        } catch (error) {
+          console.error(`Skill execution failed for node ${outputId}:`, error);
+          const errorMessage = extractErrorMessage(error);
+          const errorCode = extractErrorCode(error);
+
+          setNodes((nds) =>
+            nds.map((n) =>
+              n.id === outputId
+                ? { ...n, data: { ...n.data, isLoading: false, error: errorMessage } }
+                : n
+            )
+          );
+
+          updateRecord(historyId, {
+            status: 'error',
+            responseTime: Date.now(),
+            errorMessage,
+            errorCode: String(errorCode),
+          });
+        }
+      });
+
+      await Promise.all(executePromises);
+    },
+    [getNode, getNodes, getEdges, handleGenerate, addRecord, updateRecord]
+  );
+
   const handleCreateLinkedImageNode = useCallback(
     (nodeId: string, direction: LinkedImageDirection) => {
       const currentNode = getNode(nodeId);
@@ -681,8 +898,10 @@ function Flow() {
           onGenerate: handleGenerate,
           referenceImages: getReferenceImages(node.id, nodes, edges),
           onCreateLinkedImageNode: handleCreateLinkedImageNode,
+          onSkillExecute: handleSkillExecute,
           isOutputConnectorActive: activeOutputConnectorNodeId === node.id,
           isConnectionTargetMode: activeOutputConnectorNodeId !== null && activeOutputConnectorNodeId !== node.id,
+          isAnyConnectionActive: activeOutputConnectorNodeId !== null,
         },
       };
     }
