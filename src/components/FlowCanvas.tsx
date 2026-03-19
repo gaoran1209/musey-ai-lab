@@ -582,7 +582,15 @@ function Flow() {
       const newNodes: Node[] = [];
       const newEdges: Edge[] = [];
 
+      // Layout constants
+      const ROW_STRIDE = 480; // vertical spacing between rows (node height + gap)
+      const COL_OFFSET = 350; // horizontal offset for output nodes
+
+      // Compute the starting Y for new nodes: below the source node
+      const startY = node.position.y + ROW_STRIDE;
+
       // Create nodes for newly uploaded images (skip if from existing node)
+      // Positioned below the source image, stacking vertically
       const inputNodeIds: string[] = [];
       skillImages.forEach((img, i) => {
         if (img.fromNodeId) {
@@ -593,7 +601,7 @@ function Flow() {
           newNodes.push({
             id: newId,
             type: 'imageNode',
-            position: { x: node.position.x - 350, y: node.position.y + i * 420 },
+            position: { x: node.position.x, y: startY + i * ROW_STRIDE },
             data: {
               imageSrc: img.imageSrc,
               title: img.label,
@@ -603,7 +611,7 @@ function Flow() {
         }
       });
 
-      // Create output nodes
+      // Create output nodes — positioned to the right of the input row
       const outputNodeIds: string[] = [];
       for (let i = 0; i < batchSize; i++) {
         const outputId = uuidv4();
@@ -611,7 +619,7 @@ function Flow() {
         newNodes.push({
           id: outputId,
           type: 'imageNode',
-          position: { x: node.position.x + 350, y: node.position.y + i * 420 },
+          position: { x: node.position.x + COL_OFFSET, y: startY + i * ROW_STRIDE },
           data: {
             isLoading: true,
             title: getSkillTitle(skillType, i + 1),
