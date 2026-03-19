@@ -58,7 +58,9 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
   const [targetType, setTargetType] = useState<'image' | 'video'>('image');
   const [videoDuration, setVideoDuration] = useState('4');
   const [activeSkillMenu, setActiveSkillMenu] = useState<SkillType | null>(null);
-  const [tryonTags, setTryonTags] = useState<Record<string, string>>({});
+  const [skillMode, setSkillMode] = useState<string>('precise');
+  const [skillImages, setSkillImages] = useState<Array<{ id: string; imageSrc: string; label: string; tag?: string; fromNodeId?: string }>>([]);
+  const skillUploadRef = useRef<HTMLInputElement>(null);
 
   const referenceImages = data.referenceImages || [];
   const outputDragStateRef = useRef<{ pointerId: number | null; startX: number; startY: number; moved: boolean }>({
@@ -434,30 +436,90 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
 
   const handleSkillButtonClick = useCallback((skillType: SkillType) => (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (referenceImages.length === 0) return;
-
-    if (skillType === 'tryon') {
-      // Initialize tryon tags with defaults
-      const tags: Record<string, string> = {};
-      referenceImages.forEach((ref, i) => {
-        tags[ref.nodeId] = i === 0 ? '上衣' : i === 1 ? '裤子' : '上衣';
-      });
-      setTryonTags(tags);
+    if (activeSkillMenu === skillType) {
+      setActiveSkillMenu(null);
+      return;
     }
-    setActiveSkillMenu((prev) => (prev === skillType ? null : skillType));
-  }, [referenceImages]);
+    // Initialize with connected references (if any)
+    const initialImages = referenceImages.map((ref, i) => ({
+      id: uuidv4(),
+      imageSrc: ref.imageSrc,
+      label: ref.label,
+      tag: skillType === 'tryon' ? (i === 0 ? '上衣' : '裤子') : undefined,
+      fromNodeId: ref.nodeId,
+    }));
+    setSkillImages(initialImages);
+    setSkillMode(skillType === 'change-model' ? 'face-swap' : 'precise');
+    setActiveSkillMenu(skillType);
+  }, [activeSkillMenu, referenceImages]);
 
-  const handleSkillModeSelect = useCallback((skillType: SkillType, mode: string) => (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setActiveSkillMenu(null);
-    data.onSkillExecute?.(id, skillType, { mode, batchSize: 1 });
-  }, [data, id]);
+  const handleSkillImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const fileList = e.target.files;
+    if (!fileList || fileList.length === 0) return;
+    const files = Array.from(fileList).filter((f: File) => f.type.startsWith('image/'));
+    if (!files.length) return;
 
-  const handleTryonExecute = useCallback((e: React.MouseEvent) => {
+    Promise.all(
+      files.map(
+        (file: File) =>
+          new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (event) => resolve(event.target?.result as string);
+            reader.onerror = () => reject(reader.error);
+            reader.readAsDataURL(file);
+          })
+      )
+    ).then((sources) => {
+      const isSingle = activeSkillMenu !== 'tryon';
+      if (isSingle) {
+        // Replace existing image for single-image skills
+        setSkillImages(
+          sources.slice(0, 1).map((src, i) => ({
+            id: uuidv4(),
+            imageSrc: src,
+            label: activeSkillMenu === 'change-background' ? '背景图' : '模特图',
+            tag: undefined,
+          }))
+        );
+      } else {
+        // Append for TryOn (multiple clothing items)
+        setSkillImages((prev) => [
+          ...prev,
+          ...sources.map((src) => ({
+            id: uuidv4(),
+            imageSrc: src,
+            label: `服装 ${prev.length + 1}`,
+            tag: '上衣',
+          })),
+        ]);
+      }
+    });
+    e.target.value = '';
+  }, [activeSkillMenu]);
+
+  const handleSkillImageRemove = useCallback((imageId: string) => {
+    setSkillImages((prev) => prev.filter((img) => img.id !== imageId));
+  }, []);
+
+  const handleSkillExecuteClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
+    if (skillImages.length === 0 || !activeSkillMenu) return;
+    const currentSkill = activeSkillMenu;
+    const currentMode = skillMode;
+    const currentImages = skillImages.map((img) => ({
+      imageSrc: img.imageSrc,
+      label: img.label,
+      tag: img.tag,
+      fromNodeId: img.fromNodeId,
+    }));
     setActiveSkillMenu(null);
-    data.onSkillExecute?.(id, 'tryon', { tryonTags, batchSize: 1 });
-  }, [data, id, tryonTags]);
+    setSkillImages([]);
+    data.onSkillExecute?.(id, currentSkill, {
+      mode: currentMode,
+      batchSize: 1,
+      skillImages: currentImages,
+    });
+  }, [data, id, activeSkillMenu, skillMode, skillImages]);
 
   return (
     <div className={clsx(
@@ -547,128 +609,180 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
       {selected && data.imageSrc && !data.isLoading && !data.isAnyConnectionActive && (
         <div className="absolute -top-[52px] left-1/2 -translate-x-1/2 z-40">
           <div className="flex items-center gap-0.5 rounded-full border border-white/15 bg-[#1c1c20]/92 px-1.5 py-1 shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-xl">
-            <button
-              type="button"
-              onClick={handleSkillButtonClick('change-model')}
-              className={clsx(
-                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-all whitespace-nowrap",
-                referenceImages.length === 0
-                  ? "text-white/25 cursor-not-allowed"
-                  : activeSkillMenu === 'change-model'
-                    ? "bg-white/15 text-white"
-                    : "text-white/70 hover:bg-white/10 hover:text-white"
-              )}
-              title={referenceImages.length === 0 ? "请先连接参考图像" : "换模特"}
-              disabled={referenceImages.length === 0}
-            >
-              <UserRound className="w-3.5 h-3.5" />
-              <span>换模特</span>
-            </button>
-            <div className="w-px h-4 bg-white/10" />
-            <button
-              type="button"
-              onClick={handleSkillButtonClick('change-background')}
-              className={clsx(
-                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-all whitespace-nowrap",
-                referenceImages.length === 0
-                  ? "text-white/25 cursor-not-allowed"
-                  : activeSkillMenu === 'change-background'
-                    ? "bg-white/15 text-white"
-                    : "text-white/70 hover:bg-white/10 hover:text-white"
-              )}
-              title={referenceImages.length === 0 ? "请先连接参考图像" : "换背景"}
-              disabled={referenceImages.length === 0}
-            >
-              <Palette className="w-3.5 h-3.5" />
-              <span>换背景</span>
-            </button>
-            <div className="w-px h-4 bg-white/10" />
-            <button
-              type="button"
-              onClick={handleSkillButtonClick('tryon')}
-              className={clsx(
-                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-all whitespace-nowrap",
-                referenceImages.length === 0
-                  ? "text-white/25 cursor-not-allowed"
-                  : activeSkillMenu === 'tryon'
-                    ? "bg-white/15 text-white"
-                    : "text-white/70 hover:bg-white/10 hover:text-white"
-              )}
-              title={referenceImages.length === 0 ? "请先连接参考图像" : "虚拟试穿"}
-              disabled={referenceImages.length === 0}
-            >
-              <Shirt className="w-3.5 h-3.5" />
-              <span>TryOn</span>
-            </button>
+            {([
+              { type: 'change-model' as SkillType, icon: UserRound, label: '换模特' },
+              { type: 'change-background' as SkillType, icon: Palette, label: '换背景' },
+              { type: 'tryon' as SkillType, icon: Shirt, label: 'TryOn' },
+            ] as const).map((item, idx) => (
+              <React.Fragment key={item.type}>
+                {idx > 0 && <div className="w-px h-4 bg-white/10" />}
+                <button
+                  type="button"
+                  onClick={handleSkillButtonClick(item.type)}
+                  className={clsx(
+                    "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-all whitespace-nowrap",
+                    activeSkillMenu === item.type
+                      ? "bg-white/15 text-white"
+                      : "text-white/70 hover:bg-white/10 hover:text-white"
+                  )}
+                  title={item.label}
+                >
+                  <item.icon className="w-3.5 h-3.5" />
+                  <span>{item.label}</span>
+                </button>
+              </React.Fragment>
+            ))}
           </div>
 
-          {/* Skill Mode Menu (change-background / change-model) */}
-          {activeSkillMenu && activeSkillMenu !== 'tryon' && (
+          {/* Skill Panel */}
+          {activeSkillMenu && (
             <div
-              className="absolute left-1/2 -translate-x-1/2 top-[calc(100%+8px)] z-50 min-w-[220px] overflow-hidden rounded-2xl border border-white/10 bg-[#222226]/95 p-1.5 shadow-[0_18px_60px_rgba(0,0,0,0.5)] backdrop-blur-2xl"
+              className="absolute left-1/2 -translate-x-1/2 top-[calc(100%+8px)] z-50 w-[300px] overflow-hidden rounded-2xl border border-white/10 bg-[#1e1e22]/95 p-4 shadow-[0_18px_60px_rgba(0,0,0,0.5)] backdrop-blur-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              {SKILL_MODES[activeSkillMenu].map((modeOption) => (
+              {/* Panel Header */}
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-sm font-medium text-white">
+                  {activeSkillMenu === 'change-model' ? '换模特' : activeSkillMenu === 'change-background' ? '换背景' : '虚拟试穿'}
+                </span>
                 <button
-                  key={modeOption.id}
                   type="button"
-                  onClick={handleSkillModeSelect(activeSkillMenu, modeOption.id)}
-                  className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors hover:bg-white/10"
+                  onClick={(e) => { e.stopPropagation(); setActiveSkillMenu(null); }}
+                  className="flex h-6 w-6 items-center justify-center rounded-full text-white/40 hover:bg-white/10 hover:text-white transition-colors"
                 >
-                  <ChevronRight className="h-3.5 w-3.5 shrink-0 text-white/40" />
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium text-white">{modeOption.label}</div>
-                    <div className="text-xs text-neutral-400">{modeOption.desc}</div>
-                  </div>
+                  <X className="h-3.5 w-3.5" />
                 </button>
-              ))}
-            </div>
-          )}
+              </div>
 
-          {/* TryOn Tag Assignment Dialog */}
-          {activeSkillMenu === 'tryon' && (
-            <div
-              className="absolute left-1/2 -translate-x-1/2 top-[calc(100%+8px)] z-50 min-w-[280px] overflow-hidden rounded-2xl border border-white/10 bg-[#222226]/95 p-3 shadow-[0_18px_60px_rgba(0,0,0,0.5)] backdrop-blur-2xl"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="mb-2 text-xs font-medium text-neutral-400">
-                为参考图分配服装品类
-              </div>
-              <div className="flex flex-col gap-2">
-                {referenceImages.map((ref) => (
-                  <div key={ref.nodeId} className="flex items-center gap-2">
-                    <img
-                      src={ref.imageSrc}
-                      alt={ref.label}
-                      className="h-10 w-10 shrink-0 rounded-lg object-cover"
-                    />
-                    <span className="min-w-0 flex-1 truncate text-xs text-white/60">
-                      {ref.label}
-                    </span>
-                    <select
-                      value={tryonTags[ref.nodeId] || '上衣'}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        setTryonTags((prev) => ({ ...prev, [ref.nodeId]: e.target.value }));
-                      }}
-                      className="rounded-lg border border-white/10 bg-white/8 px-2 py-1.5 text-xs text-white outline-none"
+              {/* Mode Selector (for change-background / change-model) */}
+              {activeSkillMenu !== 'tryon' && (
+                <div className="mb-3 flex gap-1 rounded-xl bg-black/25 p-1">
+                  {SKILL_MODES[activeSkillMenu].map((modeOption) => (
+                    <button
+                      key={modeOption.id}
+                      type="button"
+                      onClick={(e) => { e.stopPropagation(); setSkillMode(modeOption.id); }}
+                      className={clsx(
+                        "flex-1 rounded-lg px-2 py-1.5 text-xs font-medium transition-all",
+                        skillMode === modeOption.id
+                          ? "bg-white/14 text-white shadow-sm"
+                          : "text-neutral-400 hover:text-white"
+                      )}
+                      title={modeOption.desc}
                     >
-                      {TRYON_TAG_OPTIONS.map((tag) => (
-                        <option key={tag} value={tag} className="bg-[#1C1C1C]">
-                          {tag}
-                        </option>
-                      ))}
-                    </select>
+                      {modeOption.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {/* Uploaded / Selected Images */}
+              {skillImages.length > 0 && (
+                <div className="mb-3 flex flex-col gap-2">
+                  {skillImages.map((img) => (
+                    <div key={img.id} className="flex items-center gap-2 rounded-xl border border-white/8 bg-white/5 p-2">
+                      <img
+                        src={img.imageSrc}
+                        alt={img.label}
+                        className="h-12 w-12 shrink-0 rounded-lg object-cover"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-xs font-medium text-white/80">{img.label}</div>
+                        {img.fromNodeId && (
+                          <div className="text-[10px] text-neutral-500">来自画布</div>
+                        )}
+                      </div>
+                      {activeSkillMenu === 'tryon' && (
+                        <select
+                          value={img.tag || '上衣'}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            setSkillImages((prev) =>
+                              prev.map((item) =>
+                                item.id === img.id ? { ...item, tag: e.target.value } : item
+                              )
+                            );
+                          }}
+                          className="shrink-0 rounded-lg border border-white/10 bg-white/8 px-2 py-1 text-xs text-white outline-none"
+                        >
+                          {TRYON_TAG_OPTIONS.map((tag) => (
+                            <option key={tag} value={tag} className="bg-[#1C1C1C]">{tag}</option>
+                          ))}
+                        </select>
+                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); handleSkillImageRemove(img.id); }}
+                        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-white/30 hover:bg-white/10 hover:text-white transition-colors"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Upload Area */}
+              {(activeSkillMenu === 'tryon' || skillImages.length === 0) && (
+                <label
+                  className="mb-3 flex cursor-pointer flex-col items-center gap-2 rounded-xl border-2 border-dashed border-white/10 bg-white/[0.03] px-4 py-5 text-center transition-colors hover:border-white/20 hover:bg-white/[0.06]"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <UploadCloud className="h-6 w-6 text-white/30" />
+                  <div className="text-xs text-white/50">
+                    {activeSkillMenu === 'change-background'
+                      ? '上传背景图片'
+                      : activeSkillMenu === 'change-model'
+                        ? '上传模特 / 人脸图片'
+                        : '上传服装图片'}
                   </div>
-                ))}
-              </div>
+                  <div className="text-[10px] text-white/25">点击或拖拽至此</div>
+                  <input
+                    ref={skillUploadRef}
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    multiple={activeSkillMenu === 'tryon'}
+                    onChange={handleSkillImageUpload}
+                  />
+                </label>
+              )}
+
+              {/* Single-image skill: show replace button when image exists */}
+              {activeSkillMenu !== 'tryon' && skillImages.length > 0 && (
+                <label
+                  className="mb-3 flex cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-white/8 bg-white/5 px-3 py-1.5 text-xs text-white/50 transition-colors hover:bg-white/10 hover:text-white/80"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <UploadCloud className="h-3 w-3" />
+                  <span>更换图片</span>
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*"
+                    onChange={handleSkillImageUpload}
+                  />
+                </label>
+              )}
+
+              {/* Execute Button */}
               <button
                 type="button"
-                onClick={handleTryonExecute}
-                className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl bg-white/12 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-white/20"
+                onClick={handleSkillExecuteClick}
+                disabled={skillImages.length === 0}
+                className={clsx(
+                  "flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium transition-all",
+                  skillImages.length > 0
+                    ? "bg-white/14 text-white hover:bg-white/22 shadow-[inset_0_1px_0_rgba(255,255,255,0.1)]"
+                    : "cursor-not-allowed bg-white/5 text-white/25"
+                )}
               >
-                <Check className="h-3.5 w-3.5" />
-                开始试穿
+                <Sparkles className="h-3.5 w-3.5" />
+                {activeSkillMenu === 'change-background'
+                  ? '开始换背景'
+                  : activeSkillMenu === 'change-model'
+                    ? '开始换模特'
+                    : '开始试穿'}
               </button>
             </div>
           )}

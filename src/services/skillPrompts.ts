@@ -2,10 +2,17 @@
 
 export type SkillType = 'change-background' | 'change-model' | 'tryon';
 
+export interface SkillImageItem {
+  imageSrc: string;
+  label: string;
+  tag?: string; // clothing category for TryOn
+  fromNodeId?: string; // existing node ID (undefined = newly uploaded)
+}
+
 export interface SkillExecuteOptions {
   mode?: string;
   batchSize?: number;
-  tryonTags?: Record<string, string>; // nodeId -> tag (e.g. "上衣", "裤子")
+  skillImages?: SkillImageItem[];
 }
 
 // ─── Change Background ───

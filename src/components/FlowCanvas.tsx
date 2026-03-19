@@ -566,11 +566,8 @@ function Flow() {
       const node = getNode(nodeId);
       if (!node || !node.data.imageSrc) return;
 
-      const allNodes = getNodes();
-      const allEdges = getEdges();
-      const refImages = getReferenceImages(nodeId, allNodes, allEdges);
-
-      if (refImages.length === 0) return;
+      const skillImages = options?.skillImages || [];
+      if (skillImages.length === 0) return;
 
       const apiKey = getStoredGeminiApiKey();
       if (!apiKey) {
@@ -582,11 +579,32 @@ function Flow() {
       const mode = options?.mode || 'precise';
       const ai = new GoogleGenAI({ apiKey });
 
-      // Create output nodes
-      const outputNodeIds: string[] = [];
       const newNodes: Node[] = [];
       const newEdges: Edge[] = [];
 
+      // Create nodes for newly uploaded images (skip if from existing node)
+      const inputNodeIds: string[] = [];
+      skillImages.forEach((img, i) => {
+        if (img.fromNodeId) {
+          inputNodeIds.push(img.fromNodeId);
+        } else {
+          const newId = uuidv4();
+          inputNodeIds.push(newId);
+          newNodes.push({
+            id: newId,
+            type: 'imageNode',
+            position: { x: node.position.x - 350, y: node.position.y + i * 420 },
+            data: {
+              imageSrc: img.imageSrc,
+              title: img.label,
+              onGenerate: handleGenerate,
+            },
+          });
+        }
+      });
+
+      // Create output nodes
+      const outputNodeIds: string[] = [];
       for (let i = 0; i < batchSize; i++) {
         const outputId = uuidv4();
         outputNodeIds.push(outputId);
@@ -600,11 +618,11 @@ function Flow() {
             onGenerate: handleGenerate,
           },
         });
-        // Edge from source node to output
+        // Edge from source node → output
         newEdges.push(createReferenceEdge(nodeId, outputId));
-        // Edges from all reference nodes to output
-        refImages.forEach((ref) => {
-          newEdges.push(createReferenceEdge(ref.nodeId, outputId));
+        // Edges from input material nodes → output
+        inputNodeIds.forEach((uid) => {
+          newEdges.push(createReferenceEdge(uid, outputId));
         });
       }
 
@@ -627,7 +645,7 @@ function Flow() {
         try {
           let prompt: string;
           let imageSources: string[];
-          let apiModel = 'gemini-3.1-flash-image-preview';
+          const apiModel = 'gemini-3.1-flash-image-preview';
 
           switch (skillType) {
             case 'change-background': {
@@ -636,7 +654,7 @@ function Flow() {
                 const sceneResponse = await ai.models.generateContent({
                   model: 'gemini-3.1-pro-preview',
                   contents: [
-                    { inlineData: dataUrlToInlineData(refImages[0].imageSrc) },
+                    { inlineData: dataUrlToInlineData(skillImages[0].imageSrc) },
                     { text: SCENE_EXTRACT_PROMPT },
                   ],
                 });
@@ -649,7 +667,7 @@ function Flow() {
               } else {
                 // Precise replacement: both images in one call
                 prompt = PRECISE_BG_REPLACE_PROMPT;
-                imageSources = [node.data.imageSrc as string, refImages[0].imageSrc];
+                imageSources = [node.data.imageSrc as string, skillImages[0].imageSrc];
               }
               break;
             }
@@ -669,25 +687,24 @@ function Flow() {
 
                 // Step 2: Generate with extracted features + target face
                 prompt = buildReplicaPrompt(featuresText);
-                imageSources = [node.data.imageSrc as string, refImages[0].imageSrc];
+                imageSources = [node.data.imageSrc as string, skillImages[0].imageSrc];
               } else {
                 // Face swap: both images in one call
                 prompt = FACE_SWAP_PROMPT;
-                imageSources = [node.data.imageSrc as string, refImages[0].imageSrc];
+                imageSources = [node.data.imageSrc as string, skillImages[0].imageSrc];
               }
               break;
             }
 
             case 'tryon': {
-              const tags = options?.tryonTags || {};
-              const taggedRefs = refImages.map((ref) => ({
-                label: ref.label,
-                tag: tags[ref.nodeId] || '上衣',
+              const taggedRefs = skillImages.map((img) => ({
+                label: img.label,
+                tag: img.tag || '上衣',
               }));
               prompt = buildTryonPrompt(taggedRefs);
               imageSources = [
                 node.data.imageSrc as string,
-                ...refImages.map((r) => r.imageSrc),
+                ...skillImages.map((r) => r.imageSrc),
               ];
               break;
             }
@@ -763,7 +780,7 @@ function Flow() {
 
       await Promise.all(executePromises);
     },
-    [getNode, getNodes, getEdges, handleGenerate, addRecord, updateRecord]
+    [getNode, handleGenerate, addRecord, updateRecord]
   );
 
   const handleCreateLinkedImageNode = useCallback(
