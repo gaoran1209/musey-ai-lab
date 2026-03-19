@@ -586,8 +586,20 @@ function Flow() {
       const ROW_STRIDE = 480; // vertical spacing between rows (node height + gap)
       const COL_OFFSET = 350; // horizontal offset for output nodes
 
-      // Compute the starting Y for new nodes: below the source node
-      const startY = node.position.y + ROW_STRIDE;
+      // Find the lowest Y among existing nodes in the same column region
+      // to avoid overlapping with previously created skill nodes
+      const allNodes = getNodes();
+      const xMin = node.position.x - 50;
+      const xMax = node.position.x + COL_OFFSET + 330; // cover both input & output columns
+      let maxBottomY = node.position.y; // at least below the source node
+      for (const n of allNodes) {
+        if (n.id === nodeId) continue;
+        if (n.position.x >= xMin && n.position.x <= xMax) {
+          const bottomY = n.position.y;
+          if (bottomY > maxBottomY) maxBottomY = bottomY;
+        }
+      }
+      const startY = maxBottomY + ROW_STRIDE;
 
       // Create nodes for newly uploaded images (skip if from existing node)
       // Positioned below the source image, stacking vertically
