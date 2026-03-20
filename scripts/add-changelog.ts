@@ -1,0 +1,143 @@
+#!/usr/bin/env tsx
+/**
+ * 自动向 docs.html 添加新版本记录条目。
+ *
+ * 用法:
+ *   npx tsx scripts/add-changelog.ts --version 0.6.0 --changes "新增 XX 功能" "修复 YY 问题"
+ *
+ * 也可通过 npm script 调用:
+ *   npm run changelog -- --version 0.6.0 --changes "变更1" "变更2"
+ *
+ * 选项:
+ *   --version, -v   版本号 (如 0.6.0)，不带 v 前缀
+ *   --date, -d      日期 (YYYY-MM-DD)，默认今天
+ *   --tags, -t      标签列表，逗号分隔 (feat,fix,improve,docs)，默认 feat
+ *   --changes, -c   变更条目列表（支持多个参数，每个作为一条 <li>）
+ */
+
+import { readFileSync, writeFileSync } from 'fs';
+import { resolve } from 'path';
+
+const DOCS_PATH = resolve(import.meta.dirname, '..', 'public', 'docs.html');
+
+function parseArgs(argv: string[]) {
+  const args = argv.slice(2);
+  let version = '';
+  let date = new Date().toISOString().slice(0, 10);
+  let tags: string[] = ['feat'];
+  const changes: string[] = [];
+
+  let i = 0;
+  while (i < args.length) {
+    const arg = args[i];
+    if (arg === '--version' || arg === '-v') {
+      version = args[++i];
+    } else if (arg === '--date' || arg === '-d') {
+      date = args[++i];
+    } else if (arg === '--tags' || arg === '-t') {
+      tags = args[++i].split(',').map(t => t.trim());
+    } else if (arg === '--changes' || arg === '-c') {
+      // collect all remaining non-flag arguments as changes
+      i++;
+      while (i < args.length && !args[i].startsWith('-')) {
+        changes.push(args[i]);
+        i++;
+      }
+      continue;
+    }
+    i++;
+  }
+
+  if (!version) {
+    console.error('错误: 请提供 --version 参数，例如: --version 0.6.0');
+    process.exit(1);
+  }
+  if (changes.length === 0) {
+    console.error('错误: 请提供 --changes 参数，例如: --changes "新增XX功能" "修复YY问题"');
+    process.exit(1);
+  }
+
+  return { version, date, tags, changes };
+}
+
+const TAG_MAP: Record<string, string> = {
+  feat: 'NEW',
+  fix: 'FIX',
+  improve: 'IMPROVE',
+  docs: 'DOCS',
+};
+
+function buildEntry(version: string, date: string, tags: string[], changes: string[]): string {
+  const tagHtml = tags
+    .map(t => `      <span class="changelog-tag ${t}">${TAG_MAP[t] || t.toUpperCase()}</span>`)
+    .join('\n');
+
+  const listHtml = changes
+    .map(c => `      <li>${c}</li>`)
+    .join('\n');
+
+  return `  <div class="changelog-entry latest">
+    <div class="changelog-version">
+      <span class="ver">v${version}</span>
+      <span class="date">${date}</span>
+      <span class="badge-latest">LATEST</span>
+    </div>
+    <div class="changelog-tags">
+${tagHtml}
+    </div>
+    <ul class="changelog-list">
+${listHtml}
+    </ul>
+  </div>`;
+}
+
+function main() {
+  const { version, date, tags, changes } = parseArgs(process.argv);
+
+  let html = readFileSync(DOCS_PATH, 'utf-8');
+
+  // Remove "latest" class and badge from previous latest entry
+  html = html.replace(
+    /(<div class="changelog-entry) latest(")/g,
+    '$1$2'
+  );
+  html = html.replace(
+    /\s*<span class="badge-latest">LATEST<\/span>/g,
+    ''
+  );
+
+  // Build new entry
+  const newEntry = buildEntry(version, date, tags, changes);
+
+  // Insert after the <p class="lead"> in the changelog section
+  const marker = '版本记录</h1>\n  <p class="lead">';
+  const leadEnd = '</p>';
+  const insertPoint = html.indexOf(marker);
+  if (insertPoint === -1) {
+    console.error('错误: 在 docs.html 中未找到版本记录章节标记');
+    process.exit(1);
+  }
+
+  // Find the end of the <p class="lead">...</p> after the marker
+  const afterMarker = html.indexOf(leadEnd, insertPoint + marker.length);
+  if (afterMarker === -1) {
+    console.error('错误: 无法定位插入点');
+    process.exit(1);
+  }
+  const insertIdx = afterMarker + leadEnd.length;
+
+  html = html.slice(0, insertIdx) + '\n\n' + newEntry + '\n' + html.slice(insertIdx);
+
+  writeFileSync(DOCS_PATH, html, 'utf-8');
+
+  // Also bump version in package.json
+  const pkgPath = resolve(import.meta.dirname, '..', 'package.json');
+  const pkg = JSON.parse(readFileSync(pkgPath, 'utf-8'));
+  pkg.version = version;
+  writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n', 'utf-8');
+
+  console.log(`✓ 已添加 v${version} 版本记录到 docs.html`);
+  console.log(`✓ 已更新 package.json 版本号为 ${version}`);
+}
+
+main();

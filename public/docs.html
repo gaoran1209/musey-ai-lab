@@ -265,6 +265,47 @@
     .page-nav .nav-label { font-size: 12px; color: var(--text-tertiary); }
     .page-nav .nav-title { font-size: 14px; font-weight: 600; color: var(--accent); }
     .page-nav .spacer { flex: 1; }
+
+    /* Changelog timeline */
+    .changelog-entry { position: relative; padding-left: 28px; margin-bottom: 36px; }
+    .changelog-entry::before {
+      content: ''; position: absolute; left: 7px; top: 32px; bottom: -36px;
+      width: 2px; background: var(--border-color);
+    }
+    .changelog-entry:last-child::before { display: none; }
+    .changelog-entry::after {
+      content: ''; position: absolute; left: 2px; top: 10px;
+      width: 12px; height: 12px; border-radius: 50%;
+      background: var(--bg-primary); border: 2px solid var(--accent);
+    }
+    .changelog-entry.latest::after {
+      background: var(--accent); box-shadow: 0 0 8px rgba(129,140,248,0.4);
+    }
+    .changelog-version {
+      display: inline-flex; align-items: center; gap: 10px; margin-bottom: 6px;
+    }
+    .changelog-version .ver {
+      font-size: 18px; font-weight: 700; color: var(--text-primary); letter-spacing: -0.01em;
+    }
+    .changelog-version .date {
+      font-size: 12px; color: var(--text-tertiary); font-weight: 500;
+    }
+    .changelog-version .badge-latest {
+      font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 5px;
+      background: rgba(129,140,248,0.15); color: var(--accent); letter-spacing: 0.04em;
+    }
+    .changelog-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+    .changelog-tag {
+      font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 5px;
+      letter-spacing: 0.02em;
+    }
+    .changelog-tag.feat { background: rgba(129,140,248,0.12); color: #a5b4fc; }
+    .changelog-tag.fix { background: rgba(52,211,153,0.12); color: #6ee7b7; }
+    .changelog-tag.improve { background: rgba(251,191,36,0.12); color: #fcd34d; }
+    .changelog-tag.docs { background: rgba(96,165,250,0.12); color: #93c5fd; }
+    .changelog-list { margin: 0; padding-left: 18px; }
+    .changelog-list li { font-size: 14px; color: rgba(255,255,255,0.72); margin-bottom: 4px; }
+    .changelog-list li strong { color: rgba(255,255,255,0.88); }
   </style>
 </head>
 <body>
@@ -324,6 +365,7 @@
     <a class="nav-item" data-page="config" onclick="navigateTo('config')">配置说明</a>
     <a class="nav-item" data-page="shortcuts" onclick="navigateTo('shortcuts')">快捷操作</a>
     <a class="nav-item" data-page="faq" onclick="navigateTo('faq')">常见问题</a>
+    <a class="nav-item" data-page="changelog" onclick="navigateTo('changelog')">版本记录</a>
   </div>
 </nav>
 
@@ -1196,6 +1238,110 @@ cd musey-ai-lab</code></pre>
     <a onclick="navigateTo('shortcuts')">
       <span class="nav-label">上一页</span>
       <span class="nav-title">&larr; 快捷操作</span>
+    </a>
+    <a onclick="navigateTo('changelog')">
+      <span class="nav-label">下一页</span>
+      <span class="nav-title">版本记录 &rarr;</span>
+    </a>
+  </div>
+</section>
+
+<!-- ==================== 版本记录 ==================== -->
+<section class="page-section" id="page-changelog">
+  <h1>版本记录</h1>
+  <p class="lead">Musey AI Lab 的版本更新历史，记录每次构建的主要变更。</p>
+
+  <div class="changelog-entry latest">
+    <div class="changelog-version">
+      <span class="ver">v0.5.0</span>
+      <span class="date">2026-03-19</span>
+      <span class="badge-latest">LATEST</span>
+    </div>
+    <div class="changelog-tags">
+      <span class="changelog-tag feat">NEW</span>
+      <span class="changelog-tag docs">DOCS</span>
+    </div>
+    <ul class="changelog-list">
+      <li>新增 <strong>文档中心</strong>：GitBook 风格的完整产品文档，涵盖入门、画布、技能、参考等</li>
+      <li>文档支持搜索导航、移动端自适应、深色主题</li>
+      <li>文档内容全面中文本地化</li>
+    </ul>
+  </div>
+
+  <div class="changelog-entry">
+    <div class="changelog-version">
+      <span class="ver">v0.4.0</span>
+      <span class="date">2026-03-18</span>
+    </div>
+    <div class="changelog-tags">
+      <span class="changelog-tag feat">NEW</span>
+      <span class="changelog-tag improve">IMPROVE</span>
+    </div>
+    <ul class="changelog-list">
+      <li>新增 <strong>服装品类识别</strong> 和 <strong>艺术风格识别</strong> AI 分析技能</li>
+      <li>支持同时显示多个分析结果，可展开/折叠</li>
+      <li>优化分析结果展示：正确数据解析与精细视觉设计</li>
+      <li>图像节点 UI 优化：持久化分析标签、预设提示词、仅图标替换按钮</li>
+    </ul>
+  </div>
+
+  <div class="changelog-entry">
+    <div class="changelog-version">
+      <span class="ver">v0.3.0</span>
+      <span class="date">2026-03-17</span>
+    </div>
+    <div class="changelog-tags">
+      <span class="changelog-tag feat">NEW</span>
+      <span class="changelog-tag fix">FIX</span>
+    </div>
+    <ul class="changelog-list">
+      <li>新增 <strong>图像编辑技能系统</strong>：更换背景、更换模特、虚拟试穿</li>
+      <li>技能 UI 重设计，支持单图上传流程</li>
+      <li>技能输出节点智能布局，避免重叠</li>
+      <li>修复拖拽连接在图像节点加号手柄上的行为</li>
+      <li>新增图像替换上传功能</li>
+    </ul>
+  </div>
+
+  <div class="changelog-entry">
+    <div class="changelog-version">
+      <span class="ver">v0.2.0</span>
+      <span class="date">2026-03-16</span>
+    </div>
+    <div class="changelog-tags">
+      <span class="changelog-tag feat">NEW</span>
+      <span class="changelog-tag improve">IMPROVE</span>
+    </div>
+    <ul class="changelog-list">
+      <li>新增 <strong>多图参考</strong>支持，图像引用链接与提示词高亮</li>
+      <li>新增构建版本号显示</li>
+      <li>统一流程边线为动画虚线样式</li>
+      <li>修复视频结果处理，精简历史控件</li>
+      <li>修复链接图像节点的可见边线</li>
+    </ul>
+  </div>
+
+  <div class="changelog-entry">
+    <div class="changelog-version">
+      <span class="ver">v0.1.0</span>
+      <span class="date">2026-03-14</span>
+    </div>
+    <div class="changelog-tags">
+      <span class="changelog-tag feat">NEW</span>
+    </div>
+    <ul class="changelog-list">
+      <li>项目初始化：<strong>Musey AI Lab</strong> 画布式 AI 创意工作台</li>
+      <li>实现图像节点与视频节点核心功能</li>
+      <li>集成 Gemini / Veo 模型，支持文生图与图生视频</li>
+      <li>实现节点历史记录与侧边栏 UI</li>
+      <li>Vercel 部署支持</li>
+    </ul>
+  </div>
+
+  <div class="page-nav">
+    <a onclick="navigateTo('faq')">
+      <span class="nav-label">上一页</span>
+      <span class="nav-title">&larr; 常见问题</span>
     </a>
     <span class="spacer"></span>
   </div>
