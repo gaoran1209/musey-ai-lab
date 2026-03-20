@@ -28,10 +28,10 @@
     * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'SF Pro Text', Roboto, Helvetica, Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Microsoft YaHei', 'Segoe UI', 'SF Pro Text', Roboto, Helvetica, Arial, sans-serif;
       background: var(--bg-primary);
       color: var(--text-primary);
-      line-height: 1.7;
+      line-height: 1.8;
       -webkit-font-smoothing: antialiased;
     }
 
@@ -118,11 +118,11 @@
     .page-section.active { display: block; }
 
     /* Typography */
-    h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.025em; margin-bottom: 12px; line-height: 1.2; }
+    h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.025em; margin-bottom: 12px; line-height: 1.3; }
     h2 { font-size: 22px; font-weight: 650; letter-spacing: -0.015em; margin: 40px 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); }
     h3 { font-size: 17px; font-weight: 600; margin: 28px 0 10px; color: var(--text-primary); }
     p { margin-bottom: 14px; color: rgba(255,255,255,0.78); font-size: 15px; }
-    .lead { font-size: 17px; color: var(--text-secondary); margin-bottom: 28px; line-height: 1.7; }
+    .lead { font-size: 17px; color: var(--text-secondary); margin-bottom: 28px; line-height: 1.8; }
 
     ul, ol { margin: 0 0 16px 20px; color: rgba(255,255,255,0.78); font-size: 15px; }
     li { margin-bottom: 6px; }
@@ -162,7 +162,7 @@
     }
     .card:hover { border-color: rgba(129,140,248,0.3); background: rgba(129,140,248,0.04); }
     .card-title { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
-    .card-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+    .card-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
     .card-emoji { font-size: 22px; margin-bottom: 8px; }
 
     /* Badge */
@@ -204,7 +204,9 @@
     .skill-card {
       border: 1px solid var(--border-color); border-radius: 12px;
       padding: 20px 22px; margin: 14px 0; background: rgba(255,255,255,0.015);
+      cursor: pointer; transition: all 0.15s;
     }
+    .skill-card:hover { border-color: rgba(129,140,248,0.3); background: rgba(129,140,248,0.04); }
     .skill-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
     .skill-card-icon { font-size: 24px; }
     .skill-card-name { font-size: 16px; font-weight: 600; }
@@ -257,6 +259,7 @@
       display: flex; flex-direction: column; gap: 4px;
       text-decoration: none; padding: 12px 16px; border-radius: 10px;
       border: 1px solid var(--border-color); transition: all 0.15s; max-width: 45%;
+      cursor: pointer;
     }
     .page-nav a:hover { border-color: rgba(129,140,248,0.3); background: rgba(129,140,248,0.04); }
     .page-nav .nav-label { font-size: 12px; color: var(--text-tertiary); }
@@ -276,10 +279,9 @@
     <span class="logo-tag">Docs</span>
   </a>
   <div class="header-actions">
-    <a href="https://github.com" target="_blank">GitHub</a>
     <a href="/" class="back-btn">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-      Back to App
+      返回应用
     </a>
   </div>
 </header>
@@ -288,40 +290,40 @@
 <nav class="sidebar" id="sidebar">
   <div class="search-box">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-    <input type="text" placeholder="Search docs..." id="searchInput" oninput="filterNav(this.value)" />
+    <input type="text" placeholder="搜索文档..." id="searchInput" oninput="filterNav(this.value)" />
   </div>
 
   <div class="nav-group">
-    <div class="nav-group-title">Introduction</div>
-    <a class="nav-item active" data-page="overview" onclick="navigateTo('overview')">Overview</a>
-    <a class="nav-item" data-page="quickstart" onclick="navigateTo('quickstart')">Quick Start</a>
-    <a class="nav-item" data-page="concepts" onclick="navigateTo('concepts')">Core Concepts</a>
+    <div class="nav-group-title">入门</div>
+    <a class="nav-item active" data-page="overview" onclick="navigateTo('overview')">项目概述</a>
+    <a class="nav-item" data-page="quickstart" onclick="navigateTo('quickstart')">快速开始</a>
+    <a class="nav-item" data-page="concepts" onclick="navigateTo('concepts')">核心概念</a>
   </div>
 
   <div class="nav-group">
-    <div class="nav-group-title">Canvas</div>
-    <a class="nav-item" data-page="image-node" onclick="navigateTo('image-node')">Image Node</a>
-    <a class="nav-item" data-page="video-node" onclick="navigateTo('video-node')">Video Node</a>
-    <a class="nav-item" data-page="connections" onclick="navigateTo('connections')">Connections & References</a>
-    <a class="nav-item" data-page="history" onclick="navigateTo('history')">History</a>
+    <div class="nav-group-title">画布</div>
+    <a class="nav-item" data-page="image-node" onclick="navigateTo('image-node')">图像节点</a>
+    <a class="nav-item" data-page="video-node" onclick="navigateTo('video-node')">视频节点</a>
+    <a class="nav-item" data-page="connections" onclick="navigateTo('connections')">连接与引用</a>
+    <a class="nav-item" data-page="history" onclick="navigateTo('history')">历史记录</a>
   </div>
 
   <div class="nav-group">
-    <div class="nav-group-title">AI Skills</div>
-    <a class="nav-item" data-page="skills-overview" onclick="navigateTo('skills-overview')">Skills Overview</a>
-    <a class="nav-item sub" data-page="skill-bg" onclick="navigateTo('skill-bg')">Change Background</a>
-    <a class="nav-item sub" data-page="skill-model" onclick="navigateTo('skill-model')">Change Model</a>
-    <a class="nav-item sub" data-page="skill-tryon" onclick="navigateTo('skill-tryon')">Virtual Try-On</a>
-    <a class="nav-item sub" data-page="skill-clothing" onclick="navigateTo('skill-clothing')">Clothing Recognition</a>
-    <a class="nav-item sub" data-page="skill-art" onclick="navigateTo('skill-art')">Art Style Recognition</a>
+    <div class="nav-group-title">AI 技能</div>
+    <a class="nav-item" data-page="skills-overview" onclick="navigateTo('skills-overview')">技能概览</a>
+    <a class="nav-item sub" data-page="skill-bg" onclick="navigateTo('skill-bg')">更换背景</a>
+    <a class="nav-item sub" data-page="skill-model" onclick="navigateTo('skill-model')">更换模特</a>
+    <a class="nav-item sub" data-page="skill-tryon" onclick="navigateTo('skill-tryon')">虚拟试穿</a>
+    <a class="nav-item sub" data-page="skill-clothing" onclick="navigateTo('skill-clothing')">服装品类识别</a>
+    <a class="nav-item sub" data-page="skill-art" onclick="navigateTo('skill-art')">风格识别</a>
   </div>
 
   <div class="nav-group">
-    <div class="nav-group-title">Reference</div>
-    <a class="nav-item" data-page="models" onclick="navigateTo('models')">AI Models</a>
-    <a class="nav-item" data-page="config" onclick="navigateTo('config')">Configuration</a>
-    <a class="nav-item" data-page="shortcuts" onclick="navigateTo('shortcuts')">Shortcuts</a>
-    <a class="nav-item" data-page="faq" onclick="navigateTo('faq')">FAQ</a>
+    <div class="nav-group-title">参考</div>
+    <a class="nav-item" data-page="models" onclick="navigateTo('models')">AI 模型</a>
+    <a class="nav-item" data-page="config" onclick="navigateTo('config')">配置说明</a>
+    <a class="nav-item" data-page="shortcuts" onclick="navigateTo('shortcuts')">快捷操作</a>
+    <a class="nav-item" data-page="faq" onclick="navigateTo('faq')">常见问题</a>
   </div>
 </nav>
 
@@ -334,866 +336,866 @@
 <div class="content">
 <div class="content-inner" id="content">
 
-<!-- ==================== OVERVIEW ==================== -->
+<!-- ==================== 项目概述 ==================== -->
 <section class="page-section active" id="page-overview">
-  <h1>Welcome to Musey AI Lab</h1>
-  <p class="lead">Musey AI Lab is a visual AI canvas powered by Gemini, designed for creative image generation, editing, and analysis workflows. Build node-based pipelines on an infinite canvas with drag-and-drop simplicity.</p>
+  <h1>欢迎使用 Musey AI Lab</h1>
+  <p class="lead">Musey AI Lab 是一个基于 Gemini 驱动的可视化 AI 画布，专为创意图像生成、编辑和分析工作流而设计。通过拖拽操作，在无限画布上自由搭建节点式 AI 流水线。</p>
 
   <div class="card-grid">
     <div class="card" onclick="navigateTo('quickstart')">
       <div class="card-emoji">&#9889;</div>
-      <div class="card-title">Quick Start</div>
-      <div class="card-desc">Set up your environment and create your first image in under 5 minutes.</div>
+      <div class="card-title">快速开始</div>
+      <div class="card-desc">5 分钟内完成环境搭建，生成你的第一张 AI 图像。</div>
     </div>
     <div class="card" onclick="navigateTo('concepts')">
       <div class="card-emoji">&#128736;</div>
-      <div class="card-title">Core Concepts</div>
-      <div class="card-desc">Understand nodes, edges, and the canvas workflow model.</div>
+      <div class="card-title">核心概念</div>
+      <div class="card-desc">理解节点、连线和画布工作流模型。</div>
     </div>
     <div class="card" onclick="navigateTo('skills-overview')">
       <div class="card-emoji">&#10024;</div>
-      <div class="card-title">AI Skills</div>
-      <div class="card-desc">Background replacement, virtual try-on, style recognition, and more.</div>
+      <div class="card-title">AI 技能</div>
+      <div class="card-desc">更换背景、虚拟试穿、风格识别等高级功能。</div>
     </div>
     <div class="card" onclick="navigateTo('models')">
       <div class="card-emoji">&#129302;</div>
-      <div class="card-title">AI Models</div>
-      <div class="card-desc">Learn about the Gemini and Veo models behind the canvas.</div>
+      <div class="card-title">AI 模型</div>
+      <div class="card-desc">了解画布背后的 Gemini 和 Veo 模型。</div>
     </div>
   </div>
 
-  <h2>What can you build?</h2>
+  <h2>你可以做什么？</h2>
   <ul>
-    <li><strong>Image generation</strong> &mdash; describe any scene, Gemini turns text into images</li>
-    <li><strong>Image editing</strong> &mdash; change backgrounds, swap models, try on clothing</li>
-    <li><strong>Video generation</strong> &mdash; animate images or prompts with Veo</li>
-    <li><strong>Style analysis</strong> &mdash; recognize art styles and clothing categories from images</li>
-    <li><strong>Workflow chaining</strong> &mdash; connect nodes to feed results between operations</li>
+    <li><strong>图像生成</strong> &mdash; 描述任意场景，Gemini 将文字转化为图像</li>
+    <li><strong>图像编辑</strong> &mdash; 更换背景、替换模特、虚拟试穿服装</li>
+    <li><strong>视频生成</strong> &mdash; 使用 Veo 将图像或提示词转为短视频</li>
+    <li><strong>风格分析</strong> &mdash; 从图像中识别艺术风格和服装品类</li>
+    <li><strong>工作流串联</strong> &mdash; 连接节点，将上游结果传递给下游操作</li>
   </ul>
 
-  <h2>Tech Stack</h2>
+  <h2>技术栈</h2>
   <table>
-    <tr><th>Layer</th><th>Technology</th></tr>
-    <tr><td>Framework</td><td>React 19 + TypeScript</td></tr>
-    <tr><td>Canvas</td><td>React Flow (@xyflow/react)</td></tr>
+    <tr><th>层级</th><th>技术</th></tr>
+    <tr><td>框架</td><td>React 19 + TypeScript</td></tr>
+    <tr><td>画布</td><td>React Flow (@xyflow/react)</td></tr>
     <tr><td>AI</td><td>Google Gemini SDK + Veo</td></tr>
-    <tr><td>Styling</td><td>Tailwind CSS v4</td></tr>
-    <tr><td>Build</td><td>Vite 6</td></tr>
+    <tr><td>样式</td><td>Tailwind CSS v4</td></tr>
+    <tr><td>构建</td><td>Vite 6</td></tr>
   </table>
 
   <div class="page-nav">
     <span class="spacer"></span>
     <a onclick="navigateTo('quickstart')">
-      <span class="nav-label">Next</span>
-      <span class="nav-title">Quick Start &rarr;</span>
+      <span class="nav-label">下一页</span>
+      <span class="nav-title">快速开始 &rarr;</span>
     </a>
   </div>
 </section>
 
-<!-- ==================== QUICK START ==================== -->
+<!-- ==================== 快速开始 ==================== -->
 <section class="page-section" id="page-quickstart">
-  <h1>Quick Start</h1>
-  <p class="lead">Get Musey AI Lab running on your machine and generate your first image in minutes.</p>
+  <h1>快速开始</h1>
+  <p class="lead">在本地运行 Musey AI Lab，几分钟内生成你的第一张 AI 图像。</p>
 
-  <h2>Prerequisites</h2>
+  <h2>前置条件</h2>
   <ul>
     <li><strong>Node.js</strong> &ge; 20.0.0</li>
-    <li>A valid <strong>Google Gemini API Key</strong> (<a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent)">get one here</a>)</li>
+    <li>一个有效的 <strong>Google Gemini API Key</strong>（<a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent)">点此获取</a>）</li>
   </ul>
 
-  <h2>Installation</h2>
+  <h2>安装步骤</h2>
   <div class="steps">
     <div class="step">
       <div class="step-content">
-        <h3>Clone the repository</h3>
+        <h3>克隆仓库</h3>
         <pre><code>git clone &lt;repo-url&gt;
 cd musey-ai-lab</code></pre>
       </div>
     </div>
     <div class="step">
       <div class="step-content">
-        <h3>Install dependencies</h3>
+        <h3>安装依赖</h3>
         <pre><code>npm install</code></pre>
       </div>
     </div>
     <div class="step">
       <div class="step-content">
-        <h3>Start the dev server</h3>
+        <h3>启动开发服务器</h3>
         <pre><code>npm run dev</code></pre>
-        <p>Open <code>http://localhost:3000</code> in your browser.</p>
+        <p>在浏览器中打开 <code>http://localhost:3000</code>。</p>
       </div>
     </div>
     <div class="step">
       <div class="step-content">
-        <h3>Configure your API Key</h3>
-        <p>Click the avatar icon in the bottom-left sidebar, enter your Gemini API Key, and press save. The key is stored locally in your browser &mdash; it is never sent to any third-party server.</p>
+        <h3>配置 API Key</h3>
+        <p>点击左侧栏底部的头像图标，输入你的 Gemini API Key，然后点击保存。密钥仅存储在浏览器本地，不会发送至任何第三方服务器。</p>
       </div>
     </div>
   </div>
 
-  <h2>Your First Image</h2>
+  <h2>生成你的第一张图</h2>
   <div class="steps">
     <div class="step">
       <div class="step-content">
-        <h3>Create a node</h3>
-        <p>Double-click anywhere on the canvas, or use the <strong>+</strong> button in the sidebar to add an Image Node.</p>
+        <h3>创建节点</h3>
+        <p>在画布空白处<strong>双击</strong>，或使用左侧栏的 <strong>+</strong> 按钮添加一个图像节点。</p>
       </div>
     </div>
     <div class="step">
       <div class="step-content">
-        <h3>Write a prompt</h3>
-        <p>Type a description of the image you want to create, e.g. <code>A serene Japanese garden at sunset</code>.</p>
+        <h3>编写提示词</h3>
+        <p>输入你想要生成的图像描述，例如 <code>夕阳下的日式庭院，宁静祥和</code>。</p>
       </div>
     </div>
     <div class="step">
       <div class="step-content">
-        <h3>Generate</h3>
-        <p>Click the Generate button. Your image will appear in the node within seconds.</p>
+        <h3>生成图像</h3>
+        <p>点击生成按钮，图像将在几秒钟内出现在节点中。</p>
       </div>
     </div>
   </div>
 
   <div class="callout tip">
     <span class="callout-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></span>
-    <div>You can also use voice input by clicking the microphone icon in the prompt area.</div>
+    <div>你还可以点击提示词区域的麦克风图标，使用语音输入。</div>
   </div>
 
-  <h2>Build Commands</h2>
+  <h2>构建命令</h2>
   <table>
-    <tr><th>Command</th><th>Description</th></tr>
-    <tr><td><code>npm run dev</code></td><td>Start dev server at localhost:3000</td></tr>
-    <tr><td><code>npm run build</code></td><td>Production build to /dist</td></tr>
-    <tr><td><code>npm run preview</code></td><td>Preview production build locally</td></tr>
-    <tr><td><code>npm run lint</code></td><td>TypeScript type checking</td></tr>
-    <tr><td><code>npm run clean</code></td><td>Remove /dist directory</td></tr>
+    <tr><th>命令</th><th>说明</th></tr>
+    <tr><td><code>npm run dev</code></td><td>启动开发服务器（localhost:3000）</td></tr>
+    <tr><td><code>npm run build</code></td><td>生产构建，输出到 /dist</td></tr>
+    <tr><td><code>npm run preview</code></td><td>本地预览生产构建</td></tr>
+    <tr><td><code>npm run lint</code></td><td>TypeScript 类型检查</td></tr>
+    <tr><td><code>npm run clean</code></td><td>删除 /dist 目录</td></tr>
   </table>
 
   <div class="page-nav">
     <a onclick="navigateTo('overview')">
-      <span class="nav-label">Previous</span>
-      <span class="nav-title">&larr; Overview</span>
+      <span class="nav-label">上一页</span>
+      <span class="nav-title">&larr; 项目概述</span>
     </a>
     <a onclick="navigateTo('concepts')">
-      <span class="nav-label">Next</span>
-      <span class="nav-title">Core Concepts &rarr;</span>
+      <span class="nav-label">下一页</span>
+      <span class="nav-title">核心概念 &rarr;</span>
     </a>
   </div>
 </section>
 
-<!-- ==================== CONCEPTS ==================== -->
+<!-- ==================== 核心概念 ==================== -->
 <section class="page-section" id="page-concepts">
-  <h1>Core Concepts</h1>
-  <p class="lead">Understanding the building blocks of Musey AI Lab: the infinite canvas, nodes, edges, and how data flows between them.</p>
+  <h1>核心概念</h1>
+  <p class="lead">了解 Musey AI Lab 的基本构建模块：无限画布、节点、连线，以及数据如何在它们之间流动。</p>
 
-  <h2>The Infinite Canvas</h2>
-  <p>The canvas is an infinite 2D space where you build your AI workflows. You can pan by dragging the background, zoom with the scroll wheel, and arrange nodes freely in any layout.</p>
+  <h2>无限画布</h2>
+  <p>画布是一个无限延展的 2D 空间，你可以在上面自由搭建 AI 工作流。拖拽背景可以平移视图，滚轮可以缩放，节点可以自由排列。</p>
 
-  <h2>Nodes</h2>
-  <p>Nodes are the core units of the canvas. Each node represents a single operation or piece of content:</p>
+  <h2>节点</h2>
+  <p>节点是画布的核心单元。每个节点代表一个操作或一段内容：</p>
   <ul>
-    <li><strong>Image Node</strong> &mdash; Generate, edit, and analyze images using AI. Supports text prompts, reference images, and skills.</li>
-    <li><strong>Video Node</strong> &mdash; Generate short videos from prompts or images using the Veo model.</li>
+    <li><strong>图像节点</strong> &mdash; 使用 AI 生成、编辑和分析图像。支持文字提示词、参考图和技能。</li>
+    <li><strong>视频节点</strong> &mdash; 使用 Veo 模型将提示词或图像生成短视频。</li>
   </ul>
-  <p>Nodes can be moved, resized, and connected to each other. Each node has <strong>input handles</strong> (left side) and <strong>output handles</strong> (right side).</p>
+  <p>节点可以移动、调整大小、相互连接。每个节点左侧有<strong>输入端口</strong>，右侧有<strong>输出端口</strong>。</p>
 
-  <h2>Edges (Connections)</h2>
-  <p>Edges are the lines that connect nodes. When you connect an Image Node's output to another node's input, the generated image becomes available as a <strong>reference image</strong> in the downstream node.</p>
-  <p>This enables powerful workflows like:</p>
+  <h2>连线（Edges）</h2>
+  <p>连线是节点之间的连接。将一个图像节点的输出连接到另一个节点的输入后，生成的图像将自动成为下游节点的<strong>参考图</strong>。</p>
+  <p>这使得以下工作流成为可能：</p>
   <ul>
-    <li>Generate an image &rarr; change its background</li>
-    <li>Generate a person &rarr; try on different clothes</li>
-    <li>Generate an image &rarr; animate it into a video</li>
+    <li>生成图像 &rarr; 更换背景</li>
+    <li>生成人物 &rarr; 虚拟试穿不同服装</li>
+    <li>生成图像 &rarr; 转化为视频动画</li>
   </ul>
 
-  <h2>Reference Images</h2>
-  <p>When nodes are connected, the upstream image appears in the downstream node's reference list. You can mention references in your prompt using the <code>@</code> syntax to tell the AI exactly which image to use and how.</p>
+  <h2>参考图</h2>
+  <p>当节点通过连线相连后，上游图像会出现在下游节点的参考列表中。你可以在提示词中使用 <code>@</code> 语法来引用特定的参考图像，告诉 AI 具体使用哪张图以及如何使用。</p>
 
-  <h2>Skills</h2>
-  <p>Skills are pre-built AI operations that go beyond simple text-to-image generation. They use specialized prompt chains to achieve complex editing tasks like background replacement, model swapping, and virtual try-on.</p>
+  <h2>技能</h2>
+  <p>技能是预构建的 AI 操作，超越了简单的文生图能力。它们使用专门的多步提示链来完成复杂的编辑任务，如更换背景、替换模特和虚拟试穿。</p>
 
   <div class="callout info">
     <span class="callout-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
-    <div>All node state (positions, connections, images) is stored in your browser's memory. Refreshing the page will reset the canvas.</div>
+    <div>所有节点状态（位置、连接、图像）存储在浏览器内存中。刷新页面将重置画布。</div>
   </div>
 
   <div class="page-nav">
     <a onclick="navigateTo('quickstart')">
-      <span class="nav-label">Previous</span>
-      <span class="nav-title">&larr; Quick Start</span>
+      <span class="nav-label">上一页</span>
+      <span class="nav-title">&larr; 快速开始</span>
     </a>
     <a onclick="navigateTo('image-node')">
-      <span class="nav-label">Next</span>
-      <span class="nav-title">Image Node &rarr;</span>
+      <span class="nav-label">下一页</span>
+      <span class="nav-title">图像节点 &rarr;</span>
     </a>
   </div>
 </section>
 
-<!-- ==================== IMAGE NODE ==================== -->
+<!-- ==================== 图像节点 ==================== -->
 <section class="page-section" id="page-image-node">
-  <h1>Image Node</h1>
-  <p class="lead">The Image Node is the primary building block of your canvas. It handles text-to-image generation, image editing, and AI-powered skills.</p>
+  <h1>图像节点</h1>
+  <p class="lead">图像节点是画布的主要构建模块，负责文生图、图像编辑和 AI 技能执行。</p>
 
-  <h2>Creating an Image Node</h2>
+  <h2>创建图像节点</h2>
   <ul>
-    <li><strong>Double-click</strong> on the empty canvas</li>
-    <li>Use the <strong>+</strong> button in the left sidebar</li>
-    <li>Drag and drop an image file onto the canvas</li>
+    <li>在画布空白处<strong>双击</strong></li>
+    <li>使用左侧栏的 <strong>+</strong> 按钮</li>
+    <li>直接将图片文件<strong>拖拽</strong>到画布上</li>
   </ul>
 
-  <h2>Generation Parameters</h2>
+  <h2>生成参数</h2>
   <table>
-    <tr><th>Parameter</th><th>Options</th><th>Default</th></tr>
-    <tr><td>Model</td><td>Nano Banana 2 / Nano Banana / Nano Banana Pro</td><td>Nano Banana 2</td></tr>
-    <tr><td>Aspect Ratio</td><td>1:1, 16:9, 9:16, 4:3, 3:4</td><td>1:1</td></tr>
-    <tr><td>Quantity</td><td>1 &ndash; 4 images</td><td>1</td></tr>
+    <tr><th>参数</th><th>选项</th><th>默认值</th></tr>
+    <tr><td>模型</td><td>Nano Banana 2 / Nano Banana / Nano Banana Pro</td><td>Nano Banana 2</td></tr>
+    <tr><td>宽高比</td><td>1:1, 16:9, 9:16, 4:3, 3:4</td><td>1:1</td></tr>
+    <tr><td>数量</td><td>1 &ndash; 4 张</td><td>1</td></tr>
   </table>
 
-  <h2>Prompt Input</h2>
-  <p>The prompt text area supports:</p>
+  <h2>提示词输入</h2>
+  <p>提示词输入区域支持：</p>
   <ul>
-    <li><strong>Text input</strong> &mdash; describe what you want to generate</li>
-    <li><strong>Voice input</strong> &mdash; click the mic icon to use speech-to-text</li>
-    <li><strong>Preset prompts</strong> &mdash; quick-access common prompt templates</li>
-    <li><strong>@ references</strong> &mdash; mention connected images by name</li>
+    <li><strong>文字输入</strong> &mdash; 描述你想生成的内容</li>
+    <li><strong>语音输入</strong> &mdash; 点击麦克风图标使用语音转文字</li>
+    <li><strong>预设提示词</strong> &mdash; 快速使用常用提示词模板</li>
+    <li><strong>@ 引用</strong> &mdash; 通过名称引用已连接的参考图像</li>
   </ul>
 
-  <h2>Image Interaction</h2>
-  <p>Generated images support the following actions:</p>
+  <h2>图像交互</h2>
+  <p>生成的图像支持以下操作：</p>
   <ul>
-    <li><strong>Preview</strong> &mdash; click to open a full-size modal preview</li>
-    <li><strong>Download</strong> &mdash; save the image to your local machine</li>
-    <li><strong>Replace</strong> &mdash; swap the image with a new upload</li>
-    <li><strong>Delete</strong> &mdash; remove the image from the node</li>
-    <li><strong>Create output node</strong> &mdash; send this image to a new connected node</li>
+    <li><strong>预览</strong> &mdash; 点击打开全尺寸弹窗预览</li>
+    <li><strong>下载</strong> &mdash; 保存图像到本地</li>
+    <li><strong>替换</strong> &mdash; 上传新图片替换当前图像</li>
+    <li><strong>删除</strong> &mdash; 从节点中移除图像</li>
+    <li><strong>创建输出节点</strong> &mdash; 将图像发送到一个新的连接节点</li>
   </ul>
 
-  <h2>Importing Images</h2>
-  <p>You can bring existing images into the canvas by:</p>
+  <h2>导入图片</h2>
+  <p>你可以通过以下方式将已有图片导入画布：</p>
   <ul>
-    <li>Dragging image files directly onto the canvas (supports multi-file drop)</li>
-    <li>Using the upload button within a node</li>
+    <li>直接将图片文件拖拽到画布上（支持多文件拖放）</li>
+    <li>使用节点内的上传按钮</li>
   </ul>
 
   <div class="page-nav">
     <a onclick="navigateTo('concepts')">
-      <span class="nav-label">Previous</span>
-      <span class="nav-title">&larr; Core Concepts</span>
+      <span class="nav-label">上一页</span>
+      <span class="nav-title">&larr; 核心概念</span>
     </a>
     <a onclick="navigateTo('video-node')">
-      <span class="nav-label">Next</span>
-      <span class="nav-title">Video Node &rarr;</span>
+      <span class="nav-label">下一页</span>
+      <span class="nav-title">视频节点 &rarr;</span>
     </a>
   </div>
 </section>
 
-<!-- ==================== VIDEO NODE ==================== -->
+<!-- ==================== 视频节点 ==================== -->
 <section class="page-section" id="page-video-node">
-  <h1>Video Node</h1>
-  <p class="lead">Generate short AI-powered videos using the Veo model, directly on the canvas.</p>
+  <h1>视频节点</h1>
+  <p class="lead">在画布上直接使用 Veo 模型生成 AI 短视频。</p>
 
-  <h2>Creating a Video Node</h2>
-  <p>Use the sidebar's <strong>+</strong> menu and select "Video Node". You can also convert an image into a video by connecting an Image Node to a Video Node.</p>
+  <h2>创建视频节点</h2>
+  <p>使用左侧栏的 <strong>+</strong> 菜单，选择"视频节点"。你也可以将图像节点连接到视频节点，实现图生视频。</p>
 
-  <h2>Video Generation</h2>
-  <p>The Video Node uses the <strong>Veo 3.1</strong> model to generate videos. Provide a text prompt describing the motion and scene you want.</p>
+  <h2>视频生成</h2>
+  <p>视频节点使用 <strong>Veo 3.1</strong> 模型生成视频。提供一段文字提示词，描述你想要的运动效果和场景。</p>
 
   <div class="callout info">
     <span class="callout-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
-    <div>Video generation is asynchronous &mdash; it may take 30 seconds to a few minutes. A progress indicator shows the current status.</div>
+    <div>视频生成是异步处理的，可能需要 30 秒到几分钟不等。进度指示器会显示当前状态。</div>
   </div>
 
-  <h2>Video Controls</h2>
+  <h2>视频控件</h2>
   <ul>
-    <li><strong>Play / Pause</strong> &mdash; toggle video playback</li>
-    <li><strong>Progress bar</strong> &mdash; seek to any point in the video</li>
-    <li><strong>Download</strong> &mdash; save the video file locally</li>
-    <li><strong>Delete</strong> &mdash; remove the video</li>
+    <li><strong>播放 / 暂停</strong> &mdash; 切换视频播放状态</li>
+    <li><strong>进度条</strong> &mdash; 拖动到视频的任意位置</li>
+    <li><strong>下载</strong> &mdash; 将视频文件保存到本地</li>
+    <li><strong>删除</strong> &mdash; 移除视频</li>
   </ul>
 
-  <h2>Image-to-Video</h2>
-  <p>Connect an Image Node's output to a Video Node's input. The generated image will be used as the first frame, and the Veo model will animate it based on your prompt.</p>
+  <h2>图生视频</h2>
+  <p>将图像节点的输出连接到视频节点的输入。生成的图像将作为第一帧，Veo 模型会根据你的提示词对其进行动画处理。</p>
 
   <div class="page-nav">
     <a onclick="navigateTo('image-node')">
-      <span class="nav-label">Previous</span>
-      <span class="nav-title">&larr; Image Node</span>
+      <span class="nav-label">上一页</span>
+      <span class="nav-title">&larr; 图像节点</span>
     </a>
     <a onclick="navigateTo('connections')">
-      <span class="nav-label">Next</span>
-      <span class="nav-title">Connections &rarr;</span>
+      <span class="nav-label">下一页</span>
+      <span class="nav-title">连接与引用 &rarr;</span>
     </a>
   </div>
 </section>
 
-<!-- ==================== CONNECTIONS ==================== -->
+<!-- ==================== 连接与引用 ==================== -->
 <section class="page-section" id="page-connections">
-  <h1>Connections & References</h1>
-  <p class="lead">Learn how to link nodes together to build multi-step AI workflows.</p>
+  <h1>连接与引用</h1>
+  <p class="lead">了解如何将节点连接在一起，搭建多步骤 AI 工作流。</p>
 
-  <h2>Creating Connections</h2>
-  <p>Drag from a node's <strong>output handle</strong> (right side) to another node's <strong>input handle</strong> (left side) to create a connection. The upstream node's generated images automatically become available as reference images in the downstream node.</p>
+  <h2>创建连接</h2>
+  <p>从一个节点的<strong>输出端口</strong>（右侧）拖拽到另一个节点的<strong>输入端口</strong>（左侧）即可创建连接。上游节点的生成图像会自动成为下游节点的参考图。</p>
 
-  <h2>Using References</h2>
-  <p>Once connected, reference images appear in the downstream node's reference panel. You can:</p>
+  <h2>使用参考图</h2>
+  <p>连接建立后，参考图像会出现在下游节点的参考面板中。你可以：</p>
   <ul>
-    <li>Use them implicitly &mdash; the AI will consider connected images as context</li>
-    <li>Use <code>@reference-name</code> in your prompt to explicitly reference a specific image</li>
+    <li>隐式使用 &mdash; AI 会自动将连接的图像作为上下文参考</li>
+    <li>在提示词中使用 <code>@引用名称</code> 显式引用特定图像</li>
   </ul>
 
-  <h2>Workflow Examples</h2>
+  <h2>工作流示例</h2>
 
-  <h3>Sequential Editing</h3>
-  <pre><code>[Image A: Generate portrait] &rarr; [Image B: Change background] &rarr; [Image C: Apply style]</code></pre>
+  <h3>串联编辑</h3>
+  <pre><code>[图像 A: 生成人像] &rarr; [图像 B: 更换背景] &rarr; [图像 C: 应用风格]</code></pre>
 
-  <h3>Multi-Reference Composition</h3>
-  <pre><code>[Image A: Person photo]  \
-                           &rarr; [Image C: Virtual try-on]
-[Image B: Clothing item] /</code></pre>
+  <h3>多参考合成</h3>
+  <pre><code>[图像 A: 人物照片]  \
+                      &rarr; [图像 C: 虚拟试穿]
+[图像 B: 服装图片] /</code></pre>
 
-  <h3>Image to Video</h3>
-  <pre><code>[Image A: Generate scene] &rarr; [Video B: Animate with Veo]</code></pre>
+  <h3>图生视频</h3>
+  <pre><code>[图像 A: 生成场景] &rarr; [视频 B: 用 Veo 制作动画]</code></pre>
 
   <div class="callout tip">
     <span class="callout-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></span>
-    <div>Generated images have stable names like "Generated Image Result 1" so you can reference them consistently in downstream prompts.</div>
+    <div>生成的图像具有稳定的命名（如"Generated Image Result 1"），便于在下游提示词中一致地引用。</div>
   </div>
 
   <div class="page-nav">
     <a onclick="navigateTo('video-node')">
-      <span class="nav-label">Previous</span>
-      <span class="nav-title">&larr; Video Node</span>
+      <span class="nav-label">上一页</span>
+      <span class="nav-title">&larr; 视频节点</span>
     </a>
     <a onclick="navigateTo('history')">
-      <span class="nav-label">Next</span>
-      <span class="nav-title">History &rarr;</span>
+      <span class="nav-label">下一页</span>
+      <span class="nav-title">历史记录 &rarr;</span>
     </a>
   </div>
 </section>
 
-<!-- ==================== HISTORY ==================== -->
+<!-- ==================== 历史记录 ==================== -->
 <section class="page-section" id="page-history">
-  <h1>History</h1>
-  <p class="lead">Track all your generation requests, results, and errors in the history panel.</p>
+  <h1>历史记录</h1>
+  <p class="lead">在历史面板中追踪所有生成请求、结果和错误信息。</p>
 
-  <h2>History Panel</h2>
-  <p>Open the history panel from the left sidebar. Each record shows:</p>
+  <h2>历史面板</h2>
+  <p>从左侧栏打开历史面板。每条记录包含：</p>
   <ul>
-    <li><strong>Prompt</strong> &mdash; the text prompt used</li>
-    <li><strong>Status</strong> &mdash; success, error, or in-progress</li>
-    <li><strong>Duration</strong> &mdash; how long the generation took</li>
-    <li><strong>Timestamp</strong> &mdash; when the request was made</li>
-    <li><strong>Error details</strong> &mdash; if generation failed, the error message</li>
+    <li><strong>提示词</strong> &mdash; 使用的文字提示词</li>
+    <li><strong>状态</strong> &mdash; 成功、失败或进行中</li>
+    <li><strong>耗时</strong> &mdash; 生成所花费的时间</li>
+    <li><strong>时间戳</strong> &mdash; 请求发起的时间</li>
+    <li><strong>错误详情</strong> &mdash; 如果生成失败，显示错误信息</li>
   </ul>
 
-  <h2>Persistence</h2>
-  <p>History records are stored in your browser's <code>localStorage</code> under the key <code>muse-history</code>. They persist across browser sessions but are local to your device.</p>
+  <h2>数据持久化</h2>
+  <p>历史记录存储在浏览器的 <code>localStorage</code> 中，键名为 <code>muse-history</code>。它们在浏览器会话之间持久保留，但仅限于你的本地设备。</p>
 
   <div class="callout warning">
     <span class="callout-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/></svg></span>
-    <div>Clearing your browser data will erase all history records. There is no cloud backup.</div>
+    <div>清除浏览器数据将删除所有历史记录，目前没有云端备份。</div>
   </div>
 
   <div class="page-nav">
     <a onclick="navigateTo('connections')">
-      <span class="nav-label">Previous</span>
-      <span class="nav-title">&larr; Connections</span>
+      <span class="nav-label">上一页</span>
+      <span class="nav-title">&larr; 连接与引用</span>
     </a>
     <a onclick="navigateTo('skills-overview')">
-      <span class="nav-label">Next</span>
-      <span class="nav-title">Skills Overview &rarr;</span>
+      <span class="nav-label">下一页</span>
+      <span class="nav-title">技能概览 &rarr;</span>
     </a>
   </div>
 </section>
 
-<!-- ==================== SKILLS OVERVIEW ==================== -->
+<!-- ==================== 技能概览 ==================== -->
 <section class="page-section" id="page-skills-overview">
-  <h1>AI Skills</h1>
-  <p class="lead">Skills are specialized AI operations that go beyond simple text-to-image. They use multi-step prompt chains and reference images to perform complex editing and analysis tasks.</p>
+  <h1>AI 技能</h1>
+  <p class="lead">技能是超越简单文生图的专业 AI 操作。它们使用多步提示链和参考图像来完成复杂的编辑和分析任务。</p>
 
-  <h2>Available Skills</h2>
+  <h2>可用技能</h2>
 
   <div class="skill-card" onclick="navigateTo('skill-bg')">
     <div class="skill-card-header">
       <span class="skill-card-icon">&#127748;</span>
-      <span class="skill-card-name">Change Background</span>
-      <span class="badge badge-purple">Editing</span>
+      <span class="skill-card-name">更换背景</span>
+      <span class="badge badge-purple">编辑</span>
     </div>
-    <p style="margin:0;font-size:14px;color:var(--text-secondary)">Replace or transform the background of an image while keeping the subject intact.</p>
+    <p style="margin:0;font-size:14px;color:var(--text-secondary)">替换或变换图像背景，同时完整保留主体人物。</p>
     <div class="skill-card-modes">
-      <span class="badge badge-blue">Atmosphere Blend</span>
-      <span class="badge badge-blue">Precise Replace</span>
+      <span class="badge badge-blue">氛围融合</span>
+      <span class="badge badge-blue">精准替换</span>
     </div>
   </div>
 
   <div class="skill-card" onclick="navigateTo('skill-model')">
     <div class="skill-card-header">
       <span class="skill-card-icon">&#129489;</span>
-      <span class="skill-card-name">Change Model</span>
-      <span class="badge badge-purple">Editing</span>
+      <span class="skill-card-name">更换模特</span>
+      <span class="badge badge-purple">编辑</span>
     </div>
-    <p style="margin:0;font-size:14px;color:var(--text-secondary)">Replace the person or face in an image while preserving clothing, pose, and background.</p>
+    <p style="margin:0;font-size:14px;color:var(--text-secondary)">替换图像中的人物或面部，同时保留服装、姿态和背景。</p>
     <div class="skill-card-modes">
-      <span class="badge badge-blue">Face Swap</span>
-      <span class="badge badge-blue">Replica Mode</span>
+      <span class="badge badge-blue">换脸模式</span>
+      <span class="badge badge-blue">复刻模式</span>
     </div>
   </div>
 
   <div class="skill-card" onclick="navigateTo('skill-tryon')">
     <div class="skill-card-header">
       <span class="skill-card-icon">&#128087;</span>
-      <span class="skill-card-name">Virtual Try-On</span>
-      <span class="badge badge-purple">Editing</span>
+      <span class="skill-card-name">虚拟试穿</span>
+      <span class="badge badge-purple">编辑</span>
     </div>
-    <p style="margin:0;font-size:14px;color:var(--text-secondary)">Apply clothing items to a person image with realistic fit and perspective.</p>
+    <p style="margin:0;font-size:14px;color:var(--text-secondary)">将服装单品应用到人物图像上，呈现逼真的穿搭效果。</p>
     <div class="skill-card-modes">
-      <span class="badge badge-blue">Multi-Garment</span>
+      <span class="badge badge-blue">多件服装</span>
     </div>
   </div>
 
   <div class="skill-card" onclick="navigateTo('skill-clothing')">
     <div class="skill-card-header">
       <span class="skill-card-icon">&#128085;</span>
-      <span class="skill-card-name">Clothing Category Recognition</span>
-      <span class="badge badge-green">Analysis</span>
+      <span class="skill-card-name">服装品类识别</span>
+      <span class="badge badge-green">分析</span>
     </div>
-    <p style="margin:0;font-size:14px;color:var(--text-secondary)">Identify and classify clothing items in an image by type (upper, lower, overall).</p>
+    <p style="margin:0;font-size:14px;color:var(--text-secondary)">识别和分类图像中的服装单品（上装、下装、连体装）。</p>
     <div class="skill-card-modes">
-      <span class="badge badge-blue">Fixed Range</span>
-      <span class="badge badge-blue">Free Form</span>
+      <span class="badge badge-blue">固定范围</span>
+      <span class="badge badge-blue">自由描述</span>
     </div>
   </div>
 
   <div class="skill-card" onclick="navigateTo('skill-art')">
     <div class="skill-card-header">
       <span class="skill-card-icon">&#127912;</span>
-      <span class="skill-card-name">Art Style Recognition</span>
-      <span class="badge badge-green">Analysis</span>
+      <span class="skill-card-name">风格识别</span>
+      <span class="badge badge-green">分析</span>
     </div>
-    <p style="margin:0;font-size:14px;color:var(--text-secondary)">Recognize artistic and fashion styles from images across 41 predefined categories.</p>
+    <p style="margin:0;font-size:14px;color:var(--text-secondary)">从图像中识别艺术和时尚风格，覆盖 8 大类共 41 种预定义风格。</p>
     <div class="skill-card-modes">
-      <span class="badge badge-blue">41 Style Categories</span>
-      <span class="badge badge-blue">8 Style Groups</span>
+      <span class="badge badge-blue">41 种风格</span>
+      <span class="badge badge-blue">8 大分类</span>
     </div>
   </div>
 
-  <h2>How Skills Work</h2>
-  <p>Skills use a multi-step pipeline:</p>
+  <h2>技能工作原理</h2>
+  <p>技能使用多步流水线：</p>
   <ol>
-    <li><strong>Feature extraction</strong> &mdash; analyze the input image(s) to understand content and context</li>
-    <li><strong>Prompt construction</strong> &mdash; build specialized prompts with extracted features</li>
-    <li><strong>Generation / Analysis</strong> &mdash; execute the AI model with the crafted prompt</li>
-    <li><strong>Result delivery</strong> &mdash; display the output in the node or a new connected node</li>
+    <li><strong>特征提取</strong> &mdash; 分析输入图像，理解内容和上下文</li>
+    <li><strong>提示词构建</strong> &mdash; 用提取的特征构建专业提示词</li>
+    <li><strong>生成 / 分析</strong> &mdash; 使用构建好的提示词执行 AI 模型</li>
+    <li><strong>结果呈现</strong> &mdash; 在节点中展示输出，或创建新的连接节点</li>
   </ol>
 
   <div class="page-nav">
     <a onclick="navigateTo('history')">
-      <span class="nav-label">Previous</span>
-      <span class="nav-title">&larr; History</span>
+      <span class="nav-label">上一页</span>
+      <span class="nav-title">&larr; 历史记录</span>
     </a>
     <a onclick="navigateTo('skill-bg')">
-      <span class="nav-label">Next</span>
-      <span class="nav-title">Change Background &rarr;</span>
+      <span class="nav-label">下一页</span>
+      <span class="nav-title">更换背景 &rarr;</span>
     </a>
   </div>
 </section>
 
-<!-- ==================== SKILL: CHANGE BACKGROUND ==================== -->
+<!-- ==================== 更换背景 ==================== -->
 <section class="page-section" id="page-skill-bg">
-  <h1>Change Background</h1>
-  <p class="lead">Replace or blend the background of an image while perfectly preserving the subject.</p>
+  <h1>更换背景</h1>
+  <p class="lead">替换或融合图像背景，完美保留主体人物。</p>
 
-  <h2>Modes</h2>
+  <h2>模式</h2>
 
-  <h3>Atmosphere Blend</h3>
-  <p>Extracts background features from the original image, then regenerates with text guidance to create a harmonious atmosphere shift. Best for changing the mood or setting of a scene while keeping it natural.</p>
+  <h3>氛围融合</h3>
+  <p>从原始图像中提取背景特征，然后通过文字引导重新生成，创造协调的氛围转换。适合改变场景的情绪或环境，同时保持自然感。</p>
   <ul>
-    <li>Uses <code>gemini-3.1-pro-preview</code> for scene extraction</li>
-    <li>Produces natural, cohesive results</li>
-    <li>Example: Change a daytime photo to a sunset scene</li>
+    <li>使用 <code>gemini-3.1-pro-preview</code> 进行场景提取</li>
+    <li>产出自然、协调的结果</li>
+    <li>示例：将白天的照片变为夕阳场景</li>
   </ul>
 
-  <h3>Precise Replace</h3>
-  <p>Direct dual-image fusion that replaces the background with surgical precision. Best when you have a specific background in mind.</p>
+  <h3>精准替换</h3>
+  <p>直接的双图融合，以精准的方式替换背景。适合你心中已有明确背景画面的场景。</p>
   <ul>
-    <li>Provide a text description of the new background</li>
-    <li>Keeps subject edges sharp and clean</li>
-    <li>Example: Place a model in a specific studio or location</li>
+    <li>提供新背景的文字描述</li>
+    <li>主体边缘保持清晰锐利</li>
+    <li>示例：将模特置于特定的摄影棚或场景中</li>
   </ul>
 
-  <h2>Usage</h2>
+  <h2>使用方法</h2>
   <div class="steps">
     <div class="step">
       <div class="step-content">
-        <p>Select an image in a node, or ensure the node has a generated image</p>
+        <p>在节点中选择一张图片，或确保节点已有生成的图像</p>
       </div>
     </div>
     <div class="step">
       <div class="step-content">
-        <p>Click the <strong>Change Background</strong> skill button</p>
+        <p>点击<strong>更换背景</strong>技能按钮</p>
       </div>
     </div>
     <div class="step">
       <div class="step-content">
-        <p>Choose the mode (Atmosphere Blend or Precise Replace)</p>
+        <p>选择模式（氛围融合或精准替换）</p>
       </div>
     </div>
     <div class="step">
       <div class="step-content">
-        <p>Enter your background description and generate</p>
+        <p>输入背景描述并生成</p>
       </div>
     </div>
   </div>
 
   <div class="page-nav">
     <a onclick="navigateTo('skills-overview')">
-      <span class="nav-label">Previous</span>
-      <span class="nav-title">&larr; Skills Overview</span>
+      <span class="nav-label">上一页</span>
+      <span class="nav-title">&larr; 技能概览</span>
     </a>
     <a onclick="navigateTo('skill-model')">
-      <span class="nav-label">Next</span>
-      <span class="nav-title">Change Model &rarr;</span>
+      <span class="nav-label">下一页</span>
+      <span class="nav-title">更换模特 &rarr;</span>
     </a>
   </div>
 </section>
 
-<!-- ==================== SKILL: CHANGE MODEL ==================== -->
+<!-- ==================== 更换模特 ==================== -->
 <section class="page-section" id="page-skill-model">
-  <h1>Change Model</h1>
-  <p class="lead">Replace the person or face in an image while preserving clothing, pose, and scene.</p>
+  <h1>更换模特</h1>
+  <p class="lead">替换图像中的人物或面部，同时保留服装、姿态和场景。</p>
 
-  <h2>Modes</h2>
+  <h2>模式</h2>
 
-  <h3>Face Swap</h3>
-  <p>Direct facial replacement &mdash; swaps only the face while keeping everything else (body, clothes, background) intact. Best for quick face changes.</p>
+  <h3>换脸模式</h3>
+  <p>直接替换面部 &mdash; 仅更换面部，保持身体、服装和背景不变。适合快速换脸。</p>
 
-  <h3>Replica Mode</h3>
-  <p>A more advanced pipeline that extracts scene features and fashion details, then recombines them with the target face. Produces more natural and coherent results for full-body shots.</p>
+  <h3>复刻模式</h3>
+  <p>更高级的流水线：先提取场景特征和时尚细节，再与目标面部重新组合。对全身照的处理效果更自然、更连贯。</p>
   <ul>
-    <li>Extracts scene + fashion features as structured JSON</li>
-    <li>Dynamically injects into generation prompt</li>
-    <li>Better for preserving outfit and pose details</li>
+    <li>将场景和时尚特征提取为结构化 JSON</li>
+    <li>动态注入到生成提示词中</li>
+    <li>更好地保留服装和姿态细节</li>
   </ul>
 
-  <h2>Requirements</h2>
+  <h2>使用条件</h2>
   <ul>
-    <li>At least <strong>two images</strong>: the original scene and the target face</li>
-    <li>Connect both image nodes to the skill node</li>
+    <li>至少需要<strong>两张图片</strong>：原始场景图和目标人脸图</li>
+    <li>将两个图像节点都连接到技能节点</li>
   </ul>
 
   <div class="page-nav">
     <a onclick="navigateTo('skill-bg')">
-      <span class="nav-label">Previous</span>
-      <span class="nav-title">&larr; Change Background</span>
+      <span class="nav-label">上一页</span>
+      <span class="nav-title">&larr; 更换背景</span>
     </a>
     <a onclick="navigateTo('skill-tryon')">
-      <span class="nav-label">Next</span>
-      <span class="nav-title">Virtual Try-On &rarr;</span>
+      <span class="nav-label">下一页</span>
+      <span class="nav-title">虚拟试穿 &rarr;</span>
     </a>
   </div>
 </section>
 
-<!-- ==================== SKILL: VIRTUAL TRY-ON ==================== -->
+<!-- ==================== 虚拟试穿 ==================== -->
 <section class="page-section" id="page-skill-tryon">
-  <h1>Virtual Try-On</h1>
-  <p class="lead">Apply clothing items to a person image with realistic fit, perspective, and color accuracy.</p>
+  <h1>虚拟试穿</h1>
+  <p class="lead">将服装单品应用到人物图像上，实现逼真的穿搭效果，精准还原颜色和透视。</p>
 
-  <h2>How It Works</h2>
-  <p>Provide a base image of a person and one or more clothing images. The AI will dress the person in the provided garments while preserving their pose, body shape, and background.</p>
+  <h2>工作原理</h2>
+  <p>提供一张人物基底图和一张或多张服装图片。AI 会将服装穿到人物身上，同时保持姿态、体型和背景不变。</p>
 
-  <h2>Supported Garment Types</h2>
+  <h2>支持的服装类型</h2>
   <table>
-    <tr><th>Category</th><th>Examples</th></tr>
-    <tr><td>Top</td><td>T-shirt, blouse, jacket, sweater, coat</td></tr>
-    <tr><td>Bottom</td><td>Pants, skirt, shorts, jeans</td></tr>
-    <tr><td>Full Body</td><td>Dress, jumpsuit, bodysuit</td></tr>
-    <tr><td>Accessories</td><td>Shoes, bags, hats</td></tr>
+    <tr><th>类别</th><th>示例</th></tr>
+    <tr><td>上装</td><td>T恤、衬衫、夹克、毛衣、外套</td></tr>
+    <tr><td>下装</td><td>裤子、裙子、短裤、牛仔裤</td></tr>
+    <tr><td>连体装</td><td>连衣裙、连体裤、紧身衣</td></tr>
+    <tr><td>配饰</td><td>鞋子、包包、帽子</td></tr>
   </table>
 
-  <h2>Multi-Garment Support</h2>
-  <p>You can apply multiple clothing items simultaneously. Each garment image is tagged with its category (top, pants, shoes, etc.) for accurate placement.</p>
+  <h2>多件服装支持</h2>
+  <p>你可以同时应用多件服装。每件服装图片都会标注其品类标签（上装、裤子、鞋子等），以确保精准放置。</p>
 
   <div class="callout tip">
     <span class="callout-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></span>
-    <div>For best results, use clean product photos of clothing items on a white or transparent background.</div>
+    <div>为获得最佳效果，建议使用白色或透明背景的干净商品图。</div>
   </div>
 
   <div class="page-nav">
     <a onclick="navigateTo('skill-model')">
-      <span class="nav-label">Previous</span>
-      <span class="nav-title">&larr; Change Model</span>
+      <span class="nav-label">上一页</span>
+      <span class="nav-title">&larr; 更换模特</span>
     </a>
     <a onclick="navigateTo('skill-clothing')">
-      <span class="nav-label">Next</span>
-      <span class="nav-title">Clothing Recognition &rarr;</span>
+      <span class="nav-label">下一页</span>
+      <span class="nav-title">服装品类识别 &rarr;</span>
     </a>
   </div>
 </section>
 
-<!-- ==================== SKILL: CLOTHING RECOGNITION ==================== -->
+<!-- ==================== 服装品类识别 ==================== -->
 <section class="page-section" id="page-skill-clothing">
-  <h1>Clothing Category Recognition</h1>
-  <p class="lead">Automatically identify and classify clothing items in an image.</p>
+  <h1>服装品类识别</h1>
+  <p class="lead">自动识别和分类图像中的服装单品。</p>
 
-  <h2>Modes</h2>
+  <h2>模式</h2>
 
-  <h3>Fixed Range</h3>
-  <p>Match clothing against a predefined set of categories provided by the user. Useful when you know the possible categories.</p>
+  <h3>固定范围</h3>
+  <p>在用户提供的预定义品类集合中进行匹配。适合你已经知道可能品类的场景。</p>
 
-  <h3>Free Form</h3>
-  <p>Open-ended analysis that describes the design, silhouette, and type of each clothing item without predefined constraints.</p>
+  <h3>自由描述</h3>
+  <p>开放式分析，描述每件服装的设计、轮廓和类型，不受预定义约束。</p>
 
-  <h2>Output Format</h2>
-  <p>Results are returned as structured JSON with three fields:</p>
+  <h2>输出格式</h2>
+  <p>结果以结构化 JSON 返回，包含三个字段：</p>
   <pre><code>{
-  "upper_cloth": "Oversized denim jacket",
-  "lower_cloth": "High-waisted wide-leg pants",
+  "upper_cloth": "宽松牛仔夹克",
+  "lower_cloth": "高腰阔腿裤",
   "overall_cloth": null
 }</code></pre>
 
   <div class="callout info">
     <span class="callout-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
-    <div><strong>Mutual exclusivity rule:</strong> If <code>overall_cloth</code> is detected (e.g., a dress), <code>upper_cloth</code> and <code>lower_cloth</code> will be null, and vice versa.</div>
+    <div><strong>互斥规则：</strong>如果检测到 <code>overall_cloth</code>（如连衣裙），则 <code>upper_cloth</code> 和 <code>lower_cloth</code> 为 null，反之亦然。</div>
   </div>
 
   <div class="page-nav">
     <a onclick="navigateTo('skill-tryon')">
-      <span class="nav-label">Previous</span>
-      <span class="nav-title">&larr; Virtual Try-On</span>
+      <span class="nav-label">上一页</span>
+      <span class="nav-title">&larr; 虚拟试穿</span>
     </a>
     <a onclick="navigateTo('skill-art')">
-      <span class="nav-label">Next</span>
-      <span class="nav-title">Art Style Recognition &rarr;</span>
+      <span class="nav-label">下一页</span>
+      <span class="nav-title">风格识别 &rarr;</span>
     </a>
   </div>
 </section>
 
-<!-- ==================== SKILL: ART STYLE ==================== -->
+<!-- ==================== 风格识别 ==================== -->
 <section class="page-section" id="page-skill-art">
-  <h1>Art Style Recognition</h1>
-  <p class="lead">Identify artistic and fashion style labels from images across 41 predefined categories in 8 style groups.</p>
+  <h1>风格识别</h1>
+  <p class="lead">从图像中识别艺术和时尚风格标签，覆盖 8 大分类共 41 种预定义风格。</p>
 
-  <h2>Style Categories</h2>
-  <p>The system recognizes styles across 8 major groups, including but not limited to:</p>
+  <h2>风格分类</h2>
+  <p>系统可识别 8 大类风格，包括但不限于：</p>
   <ul>
-    <li><strong>Classic</strong> &mdash; Minimalist, Preppy, Business Casual</li>
-    <li><strong>Street</strong> &mdash; Streetwear, Grunge, Hip-Hop</li>
-    <li><strong>Romantic</strong> &mdash; Cottagecore, Bohemian, Vintage</li>
-    <li><strong>Avant-Garde</strong> &mdash; Deconstructed, Futuristic, Art-Inspired</li>
-    <li><strong>Cultural</strong> &mdash; Ethnic, Traditional Revival</li>
-    <li><strong>Sporty</strong> &mdash; Athleisure, Gorpcore, Techwear</li>
-    <li><strong>Luxury</strong> &mdash; Old Money, Quiet Luxury</li>
-    <li><strong>Subculture</strong> &mdash; Punk, Gothic, Y2K</li>
+    <li><strong>经典</strong> &mdash; 极简主义、学院风、商务休闲</li>
+    <li><strong>街头</strong> &mdash; 街头潮流、Grunge、嘻哈</li>
+    <li><strong>浪漫</strong> &mdash; 田园风、波西米亚、复古</li>
+    <li><strong>先锋</strong> &mdash; 解构主义、未来感、艺术风</li>
+    <li><strong>民族</strong> &mdash; 民族风、传统复兴</li>
+    <li><strong>运动</strong> &mdash; 运动休闲、山系穿搭、机能风</li>
+    <li><strong>奢华</strong> &mdash; 老钱风、静奢风</li>
+    <li><strong>亚文化</strong> &mdash; 朋克、哥特、Y2K</li>
   </ul>
 
-  <h2>Recognition Pipeline</h2>
+  <h2>识别流程</h2>
   <ol>
-    <li><strong>Dense description</strong> &mdash; Generate a detailed style description using Gemini</li>
-    <li><strong>Vector search</strong> &mdash; Find closest matches from the 41 style definitions</li>
-    <li><strong>Score fusion</strong> &mdash; Apply threshold-based filtering</li>
-    <li><strong>LLM fallback</strong> &mdash; If no clear match, use LLM reasoning</li>
+    <li><strong>密集描述</strong> &mdash; 使用 Gemini 生成详细的风格描述</li>
+    <li><strong>向量检索</strong> &mdash; 从 41 种风格定义中找到最接近的匹配</li>
+    <li><strong>分数融合</strong> &mdash; 应用阈值过滤</li>
+    <li><strong>LLM 兜底</strong> &mdash; 如果没有明确匹配，使用 LLM 推理</li>
   </ol>
 
-  <h2>Output</h2>
-  <p>Results include the matched style label and a brief explanation of why it was chosen:</p>
+  <h2>输出</h2>
+  <p>结果包含匹配的风格标签和简要说明：</p>
   <pre><code>{
-  "label": "Cottagecore",
-  "reason": "Floral print dress with puff sleeves, straw hat, and natural outdoor setting suggest a romanticized rural aesthetic."
+  "label": "田园风 Cottagecore",
+  "reason": "碎花连衣裙搭配泡泡袖，草帽和自然户外场景，呈现浪漫化的乡村美学。"
 }</code></pre>
 
   <div class="page-nav">
     <a onclick="navigateTo('skill-clothing')">
-      <span class="nav-label">Previous</span>
-      <span class="nav-title">&larr; Clothing Recognition</span>
+      <span class="nav-label">上一页</span>
+      <span class="nav-title">&larr; 服装品类识别</span>
     </a>
     <a onclick="navigateTo('models')">
-      <span class="nav-label">Next</span>
-      <span class="nav-title">AI Models &rarr;</span>
+      <span class="nav-label">下一页</span>
+      <span class="nav-title">AI 模型 &rarr;</span>
     </a>
   </div>
 </section>
 
-<!-- ==================== MODELS ==================== -->
+<!-- ==================== AI 模型 ==================== -->
 <section class="page-section" id="page-models">
-  <h1>AI Models</h1>
-  <p class="lead">Musey AI Lab uses Google's Gemini and Veo model families for all generation and analysis tasks.</p>
+  <h1>AI 模型</h1>
+  <p class="lead">Musey AI Lab 使用 Google 的 Gemini 和 Veo 模型系列来完成所有生成和分析任务。</p>
 
-  <h2>Image Generation Models</h2>
+  <h2>图像生成模型</h2>
   <table>
-    <tr><th>Display Name</th><th>Model ID</th><th>Best For</th></tr>
-    <tr><td>Nano Banana 2</td><td><code>gemini-3.1-flash-image-preview</code></td><td>Fast generation, default choice</td></tr>
-    <tr><td>Nano Banana</td><td><code>gemini-3.1-flash-image</code></td><td>Stable generation</td></tr>
-    <tr><td>Nano Banana Pro</td><td><code>gemini-3.1-pro-image-preview</code></td><td>Highest quality, slower</td></tr>
+    <tr><th>显示名称</th><th>模型 ID</th><th>适用场景</th></tr>
+    <tr><td>Nano Banana 2</td><td><code>gemini-3.1-flash-image-preview</code></td><td>快速生成，默认选择</td></tr>
+    <tr><td>Nano Banana</td><td><code>gemini-3.1-flash-image</code></td><td>稳定生成</td></tr>
+    <tr><td>Nano Banana Pro</td><td><code>gemini-3.1-pro-image-preview</code></td><td>最高质量，速度较慢</td></tr>
   </table>
 
-  <h2>Video Generation Model</h2>
+  <h2>视频生成模型</h2>
   <table>
-    <tr><th>Model ID</th><th>Purpose</th></tr>
-    <tr><td><code>veo-3.1-generate-preview</code></td><td>Text-to-video and image-to-video generation</td></tr>
+    <tr><th>模型 ID</th><th>用途</th></tr>
+    <tr><td><code>veo-3.1-generate-preview</code></td><td>文生视频和图生视频</td></tr>
   </table>
 
-  <h2>Analysis Models</h2>
+  <h2>分析模型</h2>
   <table>
-    <tr><th>Model ID</th><th>Purpose</th></tr>
-    <tr><td><code>gemini-3.1-flash-lite-preview</code></td><td>Clothing category &amp; art style recognition</td></tr>
-    <tr><td><code>gemini-3.1-pro-preview</code></td><td>Scene extraction for skills</td></tr>
+    <tr><th>模型 ID</th><th>用途</th></tr>
+    <tr><td><code>gemini-3.1-flash-lite-preview</code></td><td>服装品类和风格识别</td></tr>
+    <tr><td><code>gemini-3.1-pro-preview</code></td><td>技能场景提取</td></tr>
   </table>
 
   <div class="callout info">
     <span class="callout-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
-    <div>All models require a valid Google Gemini API key. Video generation (Veo) may have separate quota limits.</div>
+    <div>所有模型都需要有效的 Google Gemini API Key。视频生成（Veo）可能有独立的配额限制。</div>
   </div>
 
   <div class="page-nav">
     <a onclick="navigateTo('skill-art')">
-      <span class="nav-label">Previous</span>
-      <span class="nav-title">&larr; Art Style Recognition</span>
+      <span class="nav-label">上一页</span>
+      <span class="nav-title">&larr; 风格识别</span>
     </a>
     <a onclick="navigateTo('config')">
-      <span class="nav-label">Next</span>
-      <span class="nav-title">Configuration &rarr;</span>
+      <span class="nav-label">下一页</span>
+      <span class="nav-title">配置说明 &rarr;</span>
     </a>
   </div>
 </section>
 
-<!-- ==================== CONFIGURATION ==================== -->
+<!-- ==================== 配置说明 ==================== -->
 <section class="page-section" id="page-config">
-  <h1>Configuration</h1>
-  <p class="lead">Customize your Musey AI Lab setup.</p>
+  <h1>配置说明</h1>
+  <p class="lead">自定义你的 Musey AI Lab 环境。</p>
 
   <h2>API Key</h2>
-  <p>Your Gemini API key is stored in <code>localStorage</code> under the key <code>gemini_api_key</code>. It is never sent to any server other than Google's API endpoints.</p>
-  <p>To update your key:</p>
+  <p>你的 Gemini API Key 存储在 <code>localStorage</code> 中，键名为 <code>gemini_api_key</code>。它只会被发送到 Google 的 API 端点，不会发送到任何其他服务器。</p>
+  <p>更新密钥的方法：</p>
   <ol>
-    <li>Click the avatar icon in the sidebar (bottom-left)</li>
-    <li>Enter or paste your new API key</li>
-    <li>Click the save icon</li>
+    <li>点击左侧栏底部的头像图标</li>
+    <li>输入或粘贴新的 API Key</li>
+    <li>点击保存图标</li>
   </ol>
 
-  <h2>Language</h2>
-  <p>Toggle between Chinese and English using the language switch in the sidebar's user menu. The UI will update immediately.</p>
+  <h2>语言切换</h2>
+  <p>在左侧栏的用户菜单中切换中英文。界面会即时更新。</p>
 
-  <h2>Build Configuration</h2>
-  <p>The project uses Vite for builds with the following optimizations:</p>
+  <h2>构建配置</h2>
+  <p>项目使用 Vite 构建，包含以下优化：</p>
   <ul>
-    <li><strong>Code splitting</strong> &mdash; AI, Flow, and UI libraries are split into separate chunks</li>
-    <li><strong>Path alias</strong> &mdash; <code>@/</code> maps to the project root</li>
-    <li><strong>Tailwind CSS v4</strong> &mdash; via the @tailwindcss/vite plugin</li>
+    <li><strong>代码分割</strong> &mdash; AI、Flow 和 UI 库被分割为独立的 chunk</li>
+    <li><strong>路径别名</strong> &mdash; <code>@/</code> 映射到项目根目录</li>
+    <li><strong>Tailwind CSS v4</strong> &mdash; 通过 @tailwindcss/vite 插件集成</li>
   </ul>
 
-  <h2>Environment Variables</h2>
+  <h2>环境变量</h2>
   <table>
-    <tr><th>Variable</th><th>Purpose</th></tr>
-    <tr><td><code>DISABLE_HMR</code></td><td>Set to "true" to disable Hot Module Replacement</td></tr>
-    <tr><td><code>GITHUB_RUN_NUMBER</code></td><td>Auto-populated in CI for build numbering</td></tr>
+    <tr><th>变量</th><th>用途</th></tr>
+    <tr><td><code>DISABLE_HMR</code></td><td>设为 "true" 可禁用热模块替换</td></tr>
+    <tr><td><code>GITHUB_RUN_NUMBER</code></td><td>CI 中自动填充，用于构建编号</td></tr>
   </table>
 
   <div class="page-nav">
     <a onclick="navigateTo('models')">
-      <span class="nav-label">Previous</span>
-      <span class="nav-title">&larr; AI Models</span>
+      <span class="nav-label">上一页</span>
+      <span class="nav-title">&larr; AI 模型</span>
     </a>
     <a onclick="navigateTo('shortcuts')">
-      <span class="nav-label">Next</span>
-      <span class="nav-title">Shortcuts &rarr;</span>
+      <span class="nav-label">下一页</span>
+      <span class="nav-title">快捷操作 &rarr;</span>
     </a>
   </div>
 </section>
 
-<!-- ==================== SHORTCUTS ==================== -->
+<!-- ==================== 快捷操作 ==================== -->
 <section class="page-section" id="page-shortcuts">
-  <h1>Shortcuts</h1>
-  <p class="lead">Keyboard and mouse shortcuts for efficient canvas navigation.</p>
+  <h1>快捷操作</h1>
+  <p class="lead">键盘和鼠标快捷操作，提升画布操作效率。</p>
 
-  <h2>Canvas Navigation</h2>
+  <h2>画布导航</h2>
   <table>
-    <tr><th>Action</th><th>Shortcut</th></tr>
-    <tr><td>Pan canvas</td><td>Click + drag on background</td></tr>
-    <tr><td>Zoom in/out</td><td>Scroll wheel / Pinch gesture</td></tr>
-    <tr><td>Fit view</td><td>Double-click on background (empty area)</td></tr>
+    <tr><th>操作</th><th>快捷方式</th></tr>
+    <tr><td>平移画布</td><td>在背景上点击拖拽</td></tr>
+    <tr><td>缩放</td><td>滚轮 / 触控板捏合</td></tr>
+    <tr><td>适应视图</td><td>在空白区域双击</td></tr>
   </table>
 
-  <h2>Node Operations</h2>
+  <h2>节点操作</h2>
   <table>
-    <tr><th>Action</th><th>Shortcut</th></tr>
-    <tr><td>Create Image Node</td><td>Double-click on empty canvas</td></tr>
-    <tr><td>Move node</td><td>Click + drag on node header</td></tr>
-    <tr><td>Delete node</td><td>Select node + <kbd>Delete</kbd> / <kbd>Backspace</kbd></td></tr>
-    <tr><td>Connect nodes</td><td>Drag from output handle to input handle</td></tr>
+    <tr><th>操作</th><th>快捷方式</th></tr>
+    <tr><td>创建图像节点</td><td>在空白画布双击</td></tr>
+    <tr><td>移动节点</td><td>点击拖拽节点标题栏</td></tr>
+    <tr><td>删除节点</td><td>选中节点 + <kbd>Delete</kbd> / <kbd>Backspace</kbd></td></tr>
+    <tr><td>连接节点</td><td>从输出端口拖拽到输入端口</td></tr>
   </table>
 
-  <h2>Image Operations</h2>
+  <h2>图像操作</h2>
   <table>
-    <tr><th>Action</th><th>Shortcut</th></tr>
-    <tr><td>Import images</td><td>Drag files onto canvas</td></tr>
-    <tr><td>Preview image</td><td>Click on image thumbnail</td></tr>
+    <tr><th>操作</th><th>快捷方式</th></tr>
+    <tr><td>导入图片</td><td>将文件拖拽到画布</td></tr>
+    <tr><td>预览图片</td><td>点击图像缩略图</td></tr>
   </table>
 
   <div class="page-nav">
     <a onclick="navigateTo('config')">
-      <span class="nav-label">Previous</span>
-      <span class="nav-title">&larr; Configuration</span>
+      <span class="nav-label">上一页</span>
+      <span class="nav-title">&larr; 配置说明</span>
     </a>
     <a onclick="navigateTo('faq')">
-      <span class="nav-label">Next</span>
-      <span class="nav-title">FAQ &rarr;</span>
+      <span class="nav-label">下一页</span>
+      <span class="nav-title">常见问题 &rarr;</span>
     </a>
   </div>
 </section>
 
-<!-- ==================== FAQ ==================== -->
+<!-- ==================== 常见问题 ==================== -->
 <section class="page-section" id="page-faq">
-  <h1>FAQ</h1>
-  <p class="lead">Frequently asked questions about Musey AI Lab.</p>
+  <h1>常见问题</h1>
+  <p class="lead">关于 Musey AI Lab 的常见疑问解答。</p>
 
-  <h2>General</h2>
+  <h2>基本问题</h2>
 
-  <h3>Is my API key safe?</h3>
-  <p>Yes. Your API key is stored only in your browser's <code>localStorage</code>. It is sent directly to Google's API endpoints and never passes through any third-party server.</p>
+  <h3>我的 API Key 安全吗？</h3>
+  <p>安全。你的 API Key 仅存储在浏览器的 <code>localStorage</code> 中，直接发送到 Google 的 API 端点，不会经过任何第三方服务器。</p>
 
-  <h3>Does the app require a backend?</h3>
-  <p>No. Musey AI Lab is a pure frontend application. All AI calls go directly from your browser to Google's APIs.</p>
+  <h3>这个应用需要后端吗？</h3>
+  <p>不需要。Musey AI Lab 是一个纯前端应用，所有 AI 调用都从浏览器直接发往 Google 的 API。</p>
 
-  <h3>Will my canvas be saved if I refresh?</h3>
-  <p>Currently, the canvas state (nodes, connections, images) is stored in memory only. Refreshing the page will reset the canvas. History records are persisted in localStorage.</p>
+  <h3>刷新页面后画布会保存吗？</h3>
+  <p>目前画布状态（节点、连接、图像）仅存储在内存中。刷新页面会重置画布。历史记录会持久保存在 localStorage 中。</p>
 
-  <h2>Generation</h2>
+  <h2>生成相关</h2>
 
-  <h3>Why is my generation failing?</h3>
-  <p>Common causes:</p>
+  <h3>为什么我的生成失败了？</h3>
+  <p>常见原因：</p>
   <ul>
-    <li><strong>Invalid API key</strong> &mdash; check your key in the sidebar settings</li>
-    <li><strong>Quota exceeded</strong> &mdash; you may have hit the API rate limit</li>
-    <li><strong>Content policy</strong> &mdash; the prompt may have triggered safety filters</li>
+    <li><strong>API Key 无效</strong> &mdash; 在左侧栏设置中检查你的密钥</li>
+    <li><strong>配额超限</strong> &mdash; 可能已达到 API 调用频率限制</li>
+    <li><strong>内容策略</strong> &mdash; 提示词可能触发了安全过滤器</li>
   </ul>
 
-  <h3>Why does video generation take so long?</h3>
-  <p>Video generation with Veo is computationally intensive and runs asynchronously on Google's servers. Expect 30 seconds to several minutes depending on complexity.</p>
+  <h3>为什么视频生成这么慢？</h3>
+  <p>Veo 的视频生成计算量很大，在 Google 的服务器上异步运行。根据复杂度不同，通常需要 30 秒到几分钟。</p>
 
-  <h3>Can I generate multiple images at once?</h3>
-  <p>Yes. Set the "Quantity" parameter in the Image Node to generate 1-4 images per request.</p>
+  <h3>可以一次生成多张图片吗？</h3>
+  <p>可以。在图像节点中设置"数量"参数，每次请求可生成 1-4 张图片。</p>
 
-  <h2>Skills</h2>
+  <h2>技能相关</h2>
 
-  <h3>Why does Change Model need two images?</h3>
-  <p>The skill needs the original scene image (with the person to replace) and a reference image of the target face/person.</p>
+  <h3>为什么更换模特需要两张图片？</h3>
+  <p>该技能需要原始场景图像（包含要替换的人物）和目标人脸/人物的参考图像。</p>
 
-  <h3>What image formats are supported?</h3>
-  <p>PNG, JPEG, and WebP are supported for import. Generated images are returned as PNG.</p>
+  <h3>支持哪些图片格式？</h3>
+  <p>支持导入 PNG、JPEG 和 WebP 格式。生成的图像以 PNG 格式返回。</p>
 
-  <h2>Deployment</h2>
+  <h2>部署相关</h2>
 
-  <h3>How do I deploy to production?</h3>
-  <p>Run <code>npm run build</code> to create a production build in the <code>/dist</code> folder. Deploy the contents to any static hosting provider (Vercel, Netlify, GitHub Pages, etc.).</p>
+  <h3>如何部署到生产环境？</h3>
+  <p>运行 <code>npm run build</code> 在 <code>/dist</code> 目录生成生产构建。将其内容部署到任意静态托管服务（Vercel、Netlify、GitHub Pages 等）。</p>
 
   <div class="callout warning">
     <span class="callout-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/></svg></span>
-    <div>Do not embed API keys in environment variables during build. The current user-input model is the secure approach for a frontend-only application.</div>
+    <div>不要在构建时将 API Key 嵌入环境变量。当前的用户输入模式是前端应用的安全做法。</div>
   </div>
 
   <div class="page-nav">
     <a onclick="navigateTo('shortcuts')">
-      <span class="nav-label">Previous</span>
-      <span class="nav-title">&larr; Shortcuts</span>
+      <span class="nav-label">上一页</span>
+      <span class="nav-title">&larr; 快捷操作</span>
     </a>
     <span class="spacer"></span>
   </div>
@@ -1204,12 +1206,10 @@ cd musey-ai-lab</code></pre>
 
 <script>
 function navigateTo(pageId) {
-  // Update active page
   document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
   const target = document.getElementById('page-' + pageId);
   if (target) target.classList.add('active');
 
-  // Update active nav
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   const navItem = document.querySelector('.nav-item[data-page="' + pageId + '"]');
   if (navItem) {
@@ -1217,13 +1217,8 @@ function navigateTo(pageId) {
     navItem.scrollIntoView({ block: 'nearest' });
   }
 
-  // Update URL hash
   history.pushState(null, '', '#' + pageId);
-
-  // Scroll to top
   window.scrollTo(0, 0);
-
-  // Close mobile sidebar
   document.getElementById('sidebar').classList.remove('open');
 }
 
@@ -1233,19 +1228,13 @@ function filterNav(query) {
     const text = item.textContent.toLowerCase();
     item.style.display = text.includes(q) ? '' : 'none';
   });
-  document.querySelectorAll('.nav-group').forEach(group => {
-    const visible = group.querySelectorAll('.nav-item[style=""], .nav-item:not([style])');
-    // Show group title if any items visible
-  });
 }
 
-// Handle hash navigation on load
 window.addEventListener('load', () => {
   const hash = location.hash.slice(1);
   if (hash) navigateTo(hash);
 });
 
-// Handle browser back/forward
 window.addEventListener('popstate', () => {
   const hash = location.hash.slice(1);
   if (hash) navigateTo(hash);
