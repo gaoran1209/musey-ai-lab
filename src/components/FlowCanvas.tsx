@@ -834,7 +834,7 @@ function Flow() {
       try {
         if (analysisType === 'clothing-category') {
           const response = await ai.models.generateContent({
-            model: 'gemini-3.1-flash-preview',
+            model: 'gemini-3.1-flash-image-preview',
             contents: [
               { inlineData: dataUrlToInlineData(node.data.imageSrc as string) },
               { text: CLOTHING_CATEGORY_PROMPT },
@@ -863,7 +863,7 @@ function Flow() {
         } else if (analysisType === 'art-style') {
           // Step 1: Generate dense style description
           const descResponse = await ai.models.generateContent({
-            model: 'gemini-3.1-flash-preview',
+            model: 'gemini-3.1-flash-image-preview',
             contents: [
               { inlineData: dataUrlToInlineData(node.data.imageSrc as string) },
               { text: ART_STYLE_DESCRIPTION_PROMPT },
@@ -873,7 +873,7 @@ function Flow() {
 
           // Step 2: LLM-based style recognition with description
           const styleResponse = await ai.models.generateContent({
-            model: 'gemini-3.1-flash-preview',
+            model: 'gemini-3.1-flash-image-preview',
             contents: [
               { inlineData: dataUrlToInlineData(node.data.imageSrc as string) },
               { text: `以下是该图片的密集风格描述：\n${description}\n\n${ART_STYLE_RECOGNITION_PROMPT}` },
