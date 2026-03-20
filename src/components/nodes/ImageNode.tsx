@@ -27,12 +27,12 @@ export type ImageNodeData = {
   isOutputConnectorActive?: boolean;
   isConnectionTargetMode?: boolean;
   isAnyConnectionActive?: boolean;
-  analysisResult?: {
+  analysisResults?: Record<string, {
     type: AnalysisType;
     loading?: boolean;
     data?: any;
     error?: string;
-  };
+  }>;
   onGenerate?: (nodeId: string, prompt: string, params?: any) => void;
   onCreateLinkedImageNode?: (nodeId: string, direction: LinkedImageDirection) => void;
   onSkillExecute?: (nodeId: string, skillType: SkillType, options?: SkillExecuteOptions) => void;
@@ -43,6 +43,66 @@ export type ImageNodeType = Node<ImageNodeData, 'imageNode'>;
 
 function escapeRegExp(value: string) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/* ── Expandable text (default 2 lines, click to expand) ── */
+function ExpandableText({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const textRef = useRef<HTMLParagraphElement>(null);
+  const [clamped, setClamped] = useState(false);
+
+  useEffect(() => {
+    const el = textRef.current;
+    if (el) setClamped(el.scrollHeight > el.clientHeight + 2);
+  }, [text]);
+
+  return (
+    <div className="relative">
+      <p
+        ref={textRef}
+        className={clsx(
+          "text-[11px] leading-[1.65] text-white/40 transition-all",
+          !expanded && "line-clamp-2"
+        )}
+      >
+        {text}
+      </p>
+      {clamped && !expanded && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setExpanded(true); }}
+          className="mt-0.5 text-[10px] text-white/25 transition-colors hover:text-white/50"
+        >
+          展开 ↓
+        </button>
+      )}
+      {expanded && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); setExpanded(false); }}
+          className="mt-0.5 text-[10px] text-white/25 transition-colors hover:text-white/50"
+        >
+          收起 ↑
+        </button>
+      )}
+    </div>
+  );
+}
+
+/* ── Analysis result card wrapper ── */
+function AnalysisCard({ type, onDismiss, children }: { type: AnalysisType; onDismiss: (e: React.MouseEvent) => void; children: React.ReactNode }) {
+  return (
+    <div className="group/card relative w-full rounded-xl border border-white/[0.05] bg-white/[0.02] px-3 py-2">
+      <button
+        type="button"
+        onClick={(e) => { e.stopPropagation(); onDismiss(e); }}
+        className="absolute -right-1 -top-1 z-10 flex h-4 w-4 items-center justify-center rounded-full border border-white/8 bg-[#1a1a1e] text-white/25 opacity-0 transition-all hover:text-white/60 group-hover/card:opacity-100"
+      >
+        <X className="h-2 w-2" />
+      </button>
+      {children}
+    </div>
+  );
 }
 
 export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
@@ -536,10 +596,13 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
     data.onAnalyze?.(id, analysisType);
   }, [data, id]);
 
-  const handleDismissAnalysis = useCallback((e: React.MouseEvent) => {
+  const handleDismissAnalysis = useCallback((analysisType: AnalysisType) => (e: React.MouseEvent) => {
     e.stopPropagation();
-    updateNodeData(id, { analysisResult: undefined });
-  }, [id, updateNodeData]);
+    const current = data.analysisResults ?? {};
+    const next = { ...current };
+    delete next[analysisType];
+    updateNodeData(id, { analysisResults: Object.keys(next).length > 0 ? next : undefined });
+  }, [id, data.analysisResults, updateNodeData]);
 
   return (
     <div className={clsx(
@@ -890,14 +953,14 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
                 <button
                   type="button"
                   onClick={(e) => { e.stopPropagation(); setShowAnalyzeMenu((v) => !v); }}
-                  disabled={data.analysisResult?.loading}
+                  disabled={Object.values(data.analysisResults ?? {}).some((r) => r.loading)}
                   className={clsx(
                     "flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-black/45 text-white shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-md transition-all hover:scale-[1.03] hover:bg-black/60",
                     showAnalyzeMenu && "bg-white/20"
                   )}
                   title="识别"
                 >
-                  {data.analysisResult?.loading
+                  {Object.values(data.analysisResults ?? {}).some((r) => r.loading)
                     ? <Loader2 className="h-4 w-4 animate-spin" />
                     : <Eye className="h-4 w-4" />}
                 </button>
@@ -998,89 +1061,107 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
         ) : null}
       </div>
 
-      {/* Persistent Analysis Result — below image */}
-      {data.analysisResult?.data && !data.analysisResult?.loading && (
-        <div className="group/analysis relative mt-3 w-full rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.04] to-transparent px-3.5 py-3">
-          {/* Dismiss button */}
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); handleDismissAnalysis(e); }}
-            className="absolute -right-1.5 -top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full border border-white/10 bg-[#1a1a1e] text-white/30 opacity-0 transition-all hover:border-white/20 hover:text-white/70 group-hover/analysis:opacity-100"
-          >
-            <X className="h-2.5 w-2.5" />
-          </button>
-
-          {data.analysisResult.type === 'clothing-category' ? (
-            <div className="flex flex-col gap-2">
-              {/* Header */}
-              <div className="flex items-center gap-1.5">
-                <div className="flex h-5 w-5 items-center justify-center rounded-md bg-sky-500/12">
-                  <ScanSearch className="h-3 w-3 text-sky-400" />
-                </div>
-                <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/35">款式识别</span>
-              </div>
-              {/* Category tags */}
-              <div className="flex flex-wrap gap-1.5">
-                {(() => {
-                  const d = data.analysisResult.data;
-                  if (typeof d === 'string') {
-                    return (
-                      <span className="inline-flex items-center rounded-lg bg-white/[0.06] px-2.5 py-1.5 text-[11px] leading-tight text-white/75">
-                        {d}
-                      </span>
-                    );
-                  }
-                  const parts: { label: string; value: string }[] = [];
-                  if (d?.upper) parts.push({ label: '上装', value: d.upper });
-                  if (d?.lower) parts.push({ label: '下装', value: d.lower });
-                  if (d?.overall) parts.push({ label: '整体', value: d.overall });
-                  if (parts.length === 0) return null;
-                  return parts.map((part) => (
-                    <span
-                      key={part.label}
-                      className="inline-flex items-center gap-1.5 rounded-lg border border-sky-400/10 bg-sky-500/[0.06] px-2.5 py-1.5 text-[11px] leading-tight"
-                    >
-                      <span className="font-medium text-sky-400/70">{part.label}</span>
-                      <span className="text-white/70">{part.value}</span>
-                    </span>
-                  ));
-                })()}
-              </div>
-            </div>
-          ) : data.analysisResult.type === 'art-style' ? (
-            <div className="flex flex-col gap-2">
-              {/* Header with style label */}
-              <div className="flex items-center gap-2">
-                <div className="flex h-5 w-5 items-center justify-center rounded-md bg-purple-500/12">
-                  <Brush className="h-3 w-3 text-purple-400" />
-                </div>
-                <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/35">风格识别</span>
-                {(data.analysisResult.data?.label || data.analysisResult.data?.style) && (
-                  <span className="ml-auto inline-flex items-center rounded-lg border border-purple-400/15 bg-purple-500/[0.08] px-2.5 py-1 text-[11px] font-semibold text-purple-300/90">
-                    {data.analysisResult.data?.label || data.analysisResult.data?.style}
+      {/* Persistent Analysis Results — below image, supports both types simultaneously */}
+      {data.analysisResults && Object.keys(data.analysisResults).length > 0 && (
+        <div className="mt-2 flex w-full flex-col gap-2">
+          {Object.entries(data.analysisResults).map(([key, result]) => {
+            if (result.loading) {
+              return (
+                <div key={key} className="flex w-full items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
+                  <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-white/30" />
+                  <span className="text-[11px] text-white/30">
+                    {result.type === 'clothing-category' ? '款式识别中…' : '风格识别中…'}
                   </span>
-                )}
-              </div>
-              {/* Reason text */}
-              {data.analysisResult.data?.reason && (
-                <p className="text-[11px] leading-[1.6] text-white/40 line-clamp-3">
-                  {data.analysisResult.data.reason}
-                </p>
-              )}
-            </div>
-          ) : null}
-        </div>
-      )}
-      {data.analysisResult?.error && (
-        <div className="mt-3 w-full rounded-2xl border border-red-500/10 bg-red-500/[0.04] px-3.5 py-2.5">
-          <div className="flex items-center gap-2">
-            <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-red-500/12">
-              <X className="h-3 w-3 text-red-400" />
-            </div>
-            <span className="text-[11px] leading-tight text-red-300/80">
-              识别失败：{data.analysisResult.error}
-            </span>
-          </div>
+                </div>
+              );
+            }
+
+            if (result.error) {
+              return (
+                <div key={key} className="group/err relative flex w-full items-center gap-2 rounded-xl border border-red-500/10 bg-red-500/[0.03] px-3 py-2">
+                  <div className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded bg-red-500/10">
+                    <X className="h-2.5 w-2.5 text-red-400" />
+                  </div>
+                  <span className="text-[11px] leading-tight text-red-300/70 line-clamp-1">
+                    {result.type === 'clothing-category' ? '款式' : '风格'}识别失败：{result.error}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleDismissAnalysis(result.type)}
+                    className="ml-auto flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-white/20 opacity-0 transition-opacity hover:text-white/50 group-hover/err:opacity-100"
+                  >
+                    <X className="h-2.5 w-2.5" />
+                  </button>
+                </div>
+              );
+            }
+
+            if (!result.data) return null;
+
+            if (result.type === 'clothing-category') {
+              return (
+                <React.Fragment key={key}>
+                <AnalysisCard type={result.type as AnalysisType} onDismiss={handleDismissAnalysis('clothing-category')}>
+                  <div className="flex items-center gap-1.5">
+                    <div className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded bg-sky-500/12">
+                      <ScanSearch className="h-3 w-3 text-sky-400/80" />
+                    </div>
+                    <span className="text-[10px] font-medium tracking-wide text-white/30">款式</span>
+                    <div className="ml-1 flex flex-wrap gap-1">
+                      {(() => {
+                        const d = result.data;
+                        if (typeof d === 'string') {
+                          return <span className="text-[11px] text-white/65">{d}</span>;
+                        }
+                        const parts: { label: string; value: string }[] = [];
+                        if (d?.upper) parts.push({ label: '上装', value: d.upper });
+                        if (d?.lower) parts.push({ label: '下装', value: d.lower });
+                        if (d?.overall) parts.push({ label: '整体', value: d.overall });
+                        if (parts.length === 0) return null;
+                        return parts.map((part) => (
+                          <span
+                            key={part.label}
+                            className="inline-flex items-center gap-1 rounded-md border border-sky-400/8 bg-sky-500/[0.05] px-2 py-0.5 text-[11px] leading-snug"
+                          >
+                            <span className="text-sky-400/60">{part.label}</span>
+                            <span className="text-white/65">{part.value}</span>
+                          </span>
+                        ));
+                      })()}
+                    </div>
+                  </div>
+                </AnalysisCard>
+                </React.Fragment>
+              );
+            }
+
+            if (result.type === 'art-style') {
+              return (
+                <React.Fragment key={key}>
+                <AnalysisCard type={result.type} onDismiss={handleDismissAnalysis('art-style')}>
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded bg-purple-500/12">
+                        <Brush className="h-3 w-3 text-purple-400/80" />
+                      </div>
+                      <span className="text-[10px] font-medium tracking-wide text-white/30">风格</span>
+                      {(result.data?.label || result.data?.style) && (
+                        <span className="ml-1 inline-flex items-center rounded-md border border-purple-400/12 bg-purple-500/[0.06] px-2 py-0.5 text-[11px] font-medium text-purple-300/85">
+                          {result.data?.label || result.data?.style}
+                        </span>
+                      )}
+                    </div>
+                    {result.data?.reason && (
+                      <ExpandableText text={result.data.reason} />
+                    )}
+                  </div>
+                </AnalysisCard>
+                </React.Fragment>
+              );
+            }
+
+            return null;
+          })}
         </div>
       )}
 

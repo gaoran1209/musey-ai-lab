@@ -824,7 +824,7 @@ function Flow() {
       setNodes((nds) =>
         nds.map((n) =>
           n.id === nodeId
-            ? { ...n, data: { ...n.data, analysisResult: { type: analysisType, loading: true } } }
+            ? { ...n, data: { ...n.data, analysisResults: { ...(n.data.analysisResults ?? {}), [analysisType]: { type: analysisType, loading: true } } } }
             : n
         )
       );
@@ -850,10 +850,13 @@ function Flow() {
                     ...n,
                     data: {
                       ...n.data,
-                      analysisResult: {
-                        type: 'clothing-category',
-                        loading: false,
-                        data: parsed,
+                      analysisResults: {
+                        ...(n.data.analysisResults ?? {}),
+                        'clothing-category': {
+                          type: 'clothing-category',
+                          loading: false,
+                          data: parsed,
+                        },
                       },
                     },
                   }
@@ -889,10 +892,13 @@ function Flow() {
                     ...n,
                     data: {
                       ...n.data,
-                      analysisResult: {
-                        type: 'art-style',
-                        loading: false,
-                        data: { description, ...parsed },
+                      analysisResults: {
+                        ...(n.data.analysisResults ?? {}),
+                        'art-style': {
+                          type: 'art-style',
+                          loading: false,
+                          data: { description, ...parsed },
+                        },
                       },
                     },
                   }
@@ -911,10 +917,13 @@ function Flow() {
                   ...n,
                   data: {
                     ...n.data,
-                    analysisResult: {
-                      type: analysisType,
-                      loading: false,
-                      error: errorMessage,
+                    analysisResults: {
+                      ...(n.data.analysisResults ?? {}),
+                      [analysisType]: {
+                        type: analysisType,
+                        loading: false,
+                        error: errorMessage,
+                      },
                     },
                   },
                 }
