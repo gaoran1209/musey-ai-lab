@@ -1000,32 +1000,70 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
 
       {/* Persistent Analysis Result — below image */}
       {data.analysisResult?.data && !data.analysisResult?.loading && (
-        <div className="mt-2 w-full px-1">
+        <div className="group/analysis relative mt-3 w-full rounded-2xl border border-white/[0.06] bg-gradient-to-b from-white/[0.04] to-transparent px-3.5 py-3">
+          {/* Dismiss button */}
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); handleDismissAnalysis(e); }}
+            className="absolute -right-1.5 -top-1.5 z-10 flex h-5 w-5 items-center justify-center rounded-full border border-white/10 bg-[#1a1a1e] text-white/30 opacity-0 transition-all hover:border-white/20 hover:text-white/70 group-hover/analysis:opacity-100"
+          >
+            <X className="h-2.5 w-2.5" />
+          </button>
+
           {data.analysisResult.type === 'clothing-category' ? (
-            <div className="flex flex-wrap gap-1.5">
-              <span className="inline-flex items-center gap-1 rounded-full bg-sky-500/15 px-2.5 py-1 text-[11px] font-medium text-sky-300 border border-sky-400/20">
-                <ScanSearch className="h-3 w-3" />
-                款式
-              </span>
-              <span className="inline-flex items-center rounded-full bg-white/8 px-2.5 py-1 text-[11px] text-white/80 border border-white/10">
-                {typeof data.analysisResult.data === 'string'
-                  ? data.analysisResult.data
-                  : data.analysisResult.data?.category || data.analysisResult.data?.label || JSON.stringify(data.analysisResult.data)}
-              </span>
+            <div className="flex flex-col gap-2">
+              {/* Header */}
+              <div className="flex items-center gap-1.5">
+                <div className="flex h-5 w-5 items-center justify-center rounded-md bg-sky-500/12">
+                  <ScanSearch className="h-3 w-3 text-sky-400" />
+                </div>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/35">款式识别</span>
+              </div>
+              {/* Category tags */}
+              <div className="flex flex-wrap gap-1.5">
+                {(() => {
+                  const d = data.analysisResult.data;
+                  if (typeof d === 'string') {
+                    return (
+                      <span className="inline-flex items-center rounded-lg bg-white/[0.06] px-2.5 py-1.5 text-[11px] leading-tight text-white/75">
+                        {d}
+                      </span>
+                    );
+                  }
+                  const parts: { label: string; value: string }[] = [];
+                  if (d?.upper) parts.push({ label: '上装', value: d.upper });
+                  if (d?.lower) parts.push({ label: '下装', value: d.lower });
+                  if (d?.overall) parts.push({ label: '整体', value: d.overall });
+                  if (parts.length === 0) return null;
+                  return parts.map((part) => (
+                    <span
+                      key={part.label}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-sky-400/10 bg-sky-500/[0.06] px-2.5 py-1.5 text-[11px] leading-tight"
+                    >
+                      <span className="font-medium text-sky-400/70">{part.label}</span>
+                      <span className="text-white/70">{part.value}</span>
+                    </span>
+                  ));
+                })()}
+              </div>
             </div>
           ) : data.analysisResult.type === 'art-style' ? (
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center gap-1.5">
-                <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/15 px-2.5 py-1 text-[11px] font-medium text-purple-300 border border-purple-400/20">
-                  <Brush className="h-3 w-3" />
-                  风格
-                </span>
-                <span className="inline-flex items-center rounded-full bg-white/8 px-2.5 py-1 text-[11px] font-semibold text-white/90 border border-white/10">
-                  {data.analysisResult.data?.label || data.analysisResult.data?.style || ''}
-                </span>
+            <div className="flex flex-col gap-2">
+              {/* Header with style label */}
+              <div className="flex items-center gap-2">
+                <div className="flex h-5 w-5 items-center justify-center rounded-md bg-purple-500/12">
+                  <Brush className="h-3 w-3 text-purple-400" />
+                </div>
+                <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-white/35">风格识别</span>
+                {(data.analysisResult.data?.label || data.analysisResult.data?.style) && (
+                  <span className="ml-auto inline-flex items-center rounded-lg border border-purple-400/15 bg-purple-500/[0.08] px-2.5 py-1 text-[11px] font-semibold text-purple-300/90">
+                    {data.analysisResult.data?.label || data.analysisResult.data?.style}
+                  </span>
+                )}
               </div>
-              {(data.analysisResult.data?.reason) && (
-                <p className="text-[10px] leading-relaxed text-white/50 px-1 line-clamp-2">
+              {/* Reason text */}
+              {data.analysisResult.data?.reason && (
+                <p className="text-[11px] leading-[1.6] text-white/40 line-clamp-3">
                   {data.analysisResult.data.reason}
                 </p>
               )}
@@ -1034,10 +1072,15 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
         </div>
       )}
       {data.analysisResult?.error && (
-        <div className="mt-2 w-full px-1">
-          <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2.5 py-1 text-[11px] text-red-300 border border-red-400/20">
-            识别失败: {data.analysisResult.error}
-          </span>
+        <div className="mt-3 w-full rounded-2xl border border-red-500/10 bg-red-500/[0.04] px-3.5 py-2.5">
+          <div className="flex items-center gap-2">
+            <div className="flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-red-500/12">
+              <X className="h-3 w-3 text-red-400" />
+            </div>
+            <span className="text-[11px] leading-tight text-red-300/80">
+              识别失败：{data.analysisResult.error}
+            </span>
+          </div>
         </div>
       )}
 
