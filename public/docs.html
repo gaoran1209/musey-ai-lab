@@ -1,0 +1,1256 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Musey AI Lab Docs</title>
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <style>
+    :root {
+      --sidebar-width: 280px;
+      --header-height: 60px;
+      --bg-primary: #111111;
+      --bg-secondary: #0a0a0a;
+      --bg-sidebar: #0d0d0d;
+      --bg-hover: rgba(255,255,255,0.04);
+      --bg-active: rgba(99,102,241,0.12);
+      --border-color: rgba(255,255,255,0.06);
+      --text-primary: rgba(255,255,255,0.92);
+      --text-secondary: rgba(255,255,255,0.55);
+      --text-tertiary: rgba(255,255,255,0.32);
+      --accent: #818cf8;
+      --accent-dim: rgba(129,140,248,0.15);
+      --code-bg: rgba(255,255,255,0.06);
+      --success: #34d399;
+      --warning: #fbbf24;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'SF Pro Text', Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ---- Header ---- */
+    .doc-header {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      height: var(--header-height);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px;
+      background: rgba(10,10,10,0.82);
+      backdrop-filter: blur(16px) saturate(1.4);
+      border-bottom: 1px solid var(--border-color);
+    }
+    .doc-header .logo { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .doc-header .logo-icon {
+      width: 32px; height: 32px; border-radius: 10px;
+      background: linear-gradient(135deg, rgba(97,106,255,0.95), rgba(138,92,246,0.92));
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 12px rgba(88,101,242,0.25);
+    }
+    .doc-header .logo-icon svg { width: 16px; height: 16px; color: #fff; }
+    .doc-header .logo-text { font-size: 15px; font-weight: 600; color: var(--text-primary); letter-spacing: -0.01em; }
+    .doc-header .logo-tag { font-size: 11px; font-weight: 500; color: var(--text-tertiary); margin-left: 2px; letter-spacing: 0.06em; text-transform: uppercase; }
+
+    .header-actions { display: flex; align-items: center; gap: 12px; }
+    .header-actions a {
+      color: var(--text-secondary); text-decoration: none; font-size: 13px; font-weight: 500;
+      padding: 6px 12px; border-radius: 6px; transition: all 0.15s;
+    }
+    .header-actions a:hover { color: var(--text-primary); background: var(--bg-hover); }
+    .back-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 6px 14px !important; border-radius: 8px !important;
+      border: 1px solid var(--border-color); background: var(--bg-hover);
+    }
+    .back-btn:hover { border-color: rgba(255,255,255,0.12) !important; }
+
+    /* ---- Sidebar ---- */
+    .sidebar {
+      position: fixed; top: var(--header-height); left: 0; bottom: 0;
+      width: var(--sidebar-width);
+      background: var(--bg-sidebar);
+      border-right: 1px solid var(--border-color);
+      overflow-y: auto; overflow-x: hidden;
+      padding: 16px 0;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.08) transparent;
+    }
+    .sidebar::-webkit-scrollbar { width: 4px; }
+    .sidebar::-webkit-scrollbar-track { background: transparent; }
+    .sidebar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 4px; }
+
+    .nav-group { margin-bottom: 4px; }
+    .nav-group-title {
+      padding: 8px 20px 6px;
+      font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em;
+      color: var(--text-tertiary);
+    }
+    .nav-item {
+      display: block; padding: 7px 20px 7px 24px;
+      font-size: 13.5px; color: var(--text-secondary);
+      text-decoration: none; border-left: 2px solid transparent;
+      transition: all 0.12s; cursor: pointer;
+    }
+    .nav-item:hover { color: var(--text-primary); background: var(--bg-hover); }
+    .nav-item.active {
+      color: var(--accent); background: var(--bg-active);
+      border-left-color: var(--accent); font-weight: 500;
+    }
+    .nav-item.sub { padding-left: 40px; font-size: 13px; }
+
+    /* ---- Content ---- */
+    .content {
+      margin-left: var(--sidebar-width);
+      margin-top: var(--header-height);
+      min-height: calc(100vh - var(--header-height));
+      display: flex; justify-content: center;
+    }
+    .content-inner {
+      max-width: 780px; width: 100%;
+      padding: 48px 48px 120px;
+    }
+    .page-section { display: none; }
+    .page-section.active { display: block; }
+
+    /* Typography */
+    h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.025em; margin-bottom: 12px; line-height: 1.2; }
+    h2 { font-size: 22px; font-weight: 650; letter-spacing: -0.015em; margin: 40px 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color); }
+    h3 { font-size: 17px; font-weight: 600; margin: 28px 0 10px; color: var(--text-primary); }
+    p { margin-bottom: 14px; color: rgba(255,255,255,0.78); font-size: 15px; }
+    .lead { font-size: 17px; color: var(--text-secondary); margin-bottom: 28px; line-height: 1.7; }
+
+    ul, ol { margin: 0 0 16px 20px; color: rgba(255,255,255,0.78); font-size: 15px; }
+    li { margin-bottom: 6px; }
+    li::marker { color: var(--text-tertiary); }
+
+    code {
+      font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', Menlo, monospace;
+      background: var(--code-bg); padding: 2px 6px; border-radius: 4px;
+      font-size: 13px; color: #c4b5fd;
+    }
+    pre {
+      background: rgba(0,0,0,0.5); border: 1px solid var(--border-color);
+      border-radius: 10px; padding: 18px 20px; margin: 16px 0 20px;
+      overflow-x: auto; font-size: 13px; line-height: 1.65;
+    }
+    pre code { background: none; padding: 0; color: #e2e8f0; }
+
+    /* Callouts */
+    .callout {
+      border-radius: 10px; padding: 14px 18px; margin: 18px 0;
+      font-size: 14px; display: flex; gap: 10px; align-items: flex-start;
+    }
+    .callout-icon { flex-shrink: 0; margin-top: 2px; }
+    .callout.tip { background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.15); }
+    .callout.tip .callout-icon { color: var(--success); }
+    .callout.warning { background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.15); }
+    .callout.warning .callout-icon { color: var(--warning); }
+    .callout.info { background: rgba(129,140,248,0.08); border: 1px solid rgba(129,140,248,0.15); }
+    .callout.info .callout-icon { color: var(--accent); }
+
+    /* Cards */
+    .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 20px 0; }
+    .card {
+      border: 1px solid var(--border-color); border-radius: 12px;
+      padding: 18px 20px; background: rgba(255,255,255,0.02);
+      transition: all 0.15s; cursor: pointer;
+    }
+    .card:hover { border-color: rgba(129,140,248,0.3); background: rgba(129,140,248,0.04); }
+    .card-title { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+    .card-desc { font-size: 13px; color: var(--text-secondary); line-height: 1.5; }
+    .card-emoji { font-size: 22px; margin-bottom: 8px; }
+
+    /* Badge */
+    .badge {
+      display: inline-block; padding: 2px 8px; border-radius: 5px;
+      font-size: 11px; font-weight: 600; letter-spacing: 0.02em;
+    }
+    .badge-purple { background: rgba(139,92,246,0.15); color: #a78bfa; }
+    .badge-green { background: rgba(52,211,153,0.15); color: #6ee7b7; }
+    .badge-blue { background: rgba(96,165,250,0.15); color: #93bbfd; }
+
+    /* Table */
+    table { width: 100%; border-collapse: collapse; margin: 16px 0 20px; font-size: 14px; }
+    th { text-align: left; padding: 10px 14px; border-bottom: 1px solid var(--border-color); color: var(--text-secondary); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: 0.04em; }
+    td { padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.03); color: rgba(255,255,255,0.75); }
+    tr:hover td { background: var(--bg-hover); }
+
+    /* Steps */
+    .steps { counter-reset: step; margin: 20px 0; }
+    .step { display: flex; gap: 16px; margin-bottom: 20px; counter-increment: step; }
+    .step::before {
+      content: counter(step); flex-shrink: 0;
+      width: 28px; height: 28px; border-radius: 8px;
+      background: var(--accent-dim); color: var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 700; margin-top: 1px;
+    }
+    .step-content h3 { margin-top: 0; font-size: 15px; }
+    .step-content p { margin-bottom: 6px; }
+
+    /* Kbd */
+    kbd {
+      display: inline-block; padding: 2px 7px; border-radius: 5px;
+      background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+      font-family: inherit; font-size: 12px; font-weight: 500; color: var(--text-secondary);
+    }
+
+    /* Skill card */
+    .skill-card {
+      border: 1px solid var(--border-color); border-radius: 12px;
+      padding: 20px 22px; margin: 14px 0; background: rgba(255,255,255,0.015);
+    }
+    .skill-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+    .skill-card-icon { font-size: 24px; }
+    .skill-card-name { font-size: 16px; font-weight: 600; }
+    .skill-card-modes { display: flex; gap: 8px; margin: 10px 0; flex-wrap: wrap; }
+
+    /* Divider */
+    hr { border: none; border-top: 1px solid var(--border-color); margin: 32px 0; }
+
+    /* Mobile */
+    .mobile-toggle {
+      display: none; position: fixed; bottom: 20px; right: 20px; z-index: 200;
+      width: 48px; height: 48px; border-radius: 14px; border: 1px solid var(--border-color);
+      background: rgba(10,10,10,0.9); backdrop-filter: blur(12px);
+      color: var(--text-primary); font-size: 20px; cursor: pointer;
+      align-items: center; justify-content: center;
+    }
+    @media (max-width: 768px) {
+      .sidebar { transform: translateX(-100%); transition: transform 0.2s; z-index: 90; }
+      .sidebar.open { transform: translateX(0); }
+      .content { margin-left: 0; }
+      .content-inner { padding: 32px 20px 100px; }
+      .mobile-toggle { display: flex; }
+      .card-grid { grid-template-columns: 1fr; }
+      h1 { font-size: 26px; }
+    }
+
+    /* Search */
+    .search-box {
+      margin: 0 16px 12px; position: relative;
+    }
+    .search-box input {
+      width: 100%; padding: 8px 12px 8px 34px;
+      border: 1px solid var(--border-color); border-radius: 8px;
+      background: rgba(255,255,255,0.03); color: var(--text-primary);
+      font-size: 13px; outline: none; transition: border-color 0.15s;
+    }
+    .search-box input::placeholder { color: var(--text-tertiary); }
+    .search-box input:focus { border-color: rgba(129,140,248,0.4); }
+    .search-box svg {
+      position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+      width: 14px; height: 14px; color: var(--text-tertiary);
+    }
+
+    /* Page nav */
+    .page-nav {
+      display: flex; justify-content: space-between; margin-top: 48px;
+      padding-top: 24px; border-top: 1px solid var(--border-color);
+    }
+    .page-nav a {
+      display: flex; flex-direction: column; gap: 4px;
+      text-decoration: none; padding: 12px 16px; border-radius: 10px;
+      border: 1px solid var(--border-color); transition: all 0.15s; max-width: 45%;
+    }
+    .page-nav a:hover { border-color: rgba(129,140,248,0.3); background: rgba(129,140,248,0.04); }
+    .page-nav .nav-label { font-size: 12px; color: var(--text-tertiary); }
+    .page-nav .nav-title { font-size: 14px; font-weight: 600; color: var(--accent); }
+    .page-nav .spacer { flex: 1; }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<header class="doc-header">
+  <a class="logo" href="/docs.html" onclick="navigateTo('overview'); return false;">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.912 5.813a2 2 0 001.275 1.275L21 12l-5.813 1.912a2 2 0 00-1.275 1.275L12 21l-1.912-5.813a2 2 0 00-1.275-1.275L3 12l5.813-1.912a2 2 0 001.275-1.275z"/></svg>
+    </div>
+    <span class="logo-text">Musey AI Lab</span>
+    <span class="logo-tag">Docs</span>
+  </a>
+  <div class="header-actions">
+    <a href="https://github.com" target="_blank">GitHub</a>
+    <a href="/" class="back-btn">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      Back to App
+    </a>
+  </div>
+</header>
+
+<!-- Sidebar -->
+<nav class="sidebar" id="sidebar">
+  <div class="search-box">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    <input type="text" placeholder="Search docs..." id="searchInput" oninput="filterNav(this.value)" />
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-title">Introduction</div>
+    <a class="nav-item active" data-page="overview" onclick="navigateTo('overview')">Overview</a>
+    <a class="nav-item" data-page="quickstart" onclick="navigateTo('quickstart')">Quick Start</a>
+    <a class="nav-item" data-page="concepts" onclick="navigateTo('concepts')">Core Concepts</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-title">Canvas</div>
+    <a class="nav-item" data-page="image-node" onclick="navigateTo('image-node')">Image Node</a>
+    <a class="nav-item" data-page="video-node" onclick="navigateTo('video-node')">Video Node</a>
+    <a class="nav-item" data-page="connections" onclick="navigateTo('connections')">Connections & References</a>
+    <a class="nav-item" data-page="history" onclick="navigateTo('history')">History</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-title">AI Skills</div>
+    <a class="nav-item" data-page="skills-overview" onclick="navigateTo('skills-overview')">Skills Overview</a>
+    <a class="nav-item sub" data-page="skill-bg" onclick="navigateTo('skill-bg')">Change Background</a>
+    <a class="nav-item sub" data-page="skill-model" onclick="navigateTo('skill-model')">Change Model</a>
+    <a class="nav-item sub" data-page="skill-tryon" onclick="navigateTo('skill-tryon')">Virtual Try-On</a>
+    <a class="nav-item sub" data-page="skill-clothing" onclick="navigateTo('skill-clothing')">Clothing Recognition</a>
+    <a class="nav-item sub" data-page="skill-art" onclick="navigateTo('skill-art')">Art Style Recognition</a>
+  </div>
+
+  <div class="nav-group">
+    <div class="nav-group-title">Reference</div>
+    <a class="nav-item" data-page="models" onclick="navigateTo('models')">AI Models</a>
+    <a class="nav-item" data-page="config" onclick="navigateTo('config')">Configuration</a>
+    <a class="nav-item" data-page="shortcuts" onclick="navigateTo('shortcuts')">Shortcuts</a>
+    <a class="nav-item" data-page="faq" onclick="navigateTo('faq')">FAQ</a>
+  </div>
+</nav>
+
+<!-- Mobile Toggle -->
+<button class="mobile-toggle" onclick="document.getElementById('sidebar').classList.toggle('open')">
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+</button>
+
+<!-- Content -->
+<div class="content">
+<div class="content-inner" id="content">
+
+<!-- ==================== OVERVIEW ==================== -->
+<section class="page-section active" id="page-overview">
+  <h1>Welcome to Musey AI Lab</h1>
+  <p class="lead">Musey AI Lab is a visual AI canvas powered by Gemini, designed for creative image generation, editing, and analysis workflows. Build node-based pipelines on an infinite canvas with drag-and-drop simplicity.</p>
+
+  <div class="card-grid">
+    <div class="card" onclick="navigateTo('quickstart')">
+      <div class="card-emoji">&#9889;</div>
+      <div class="card-title">Quick Start</div>
+      <div class="card-desc">Set up your environment and create your first image in under 5 minutes.</div>
+    </div>
+    <div class="card" onclick="navigateTo('concepts')">
+      <div class="card-emoji">&#128736;</div>
+      <div class="card-title">Core Concepts</div>
+      <div class="card-desc">Understand nodes, edges, and the canvas workflow model.</div>
+    </div>
+    <div class="card" onclick="navigateTo('skills-overview')">
+      <div class="card-emoji">&#10024;</div>
+      <div class="card-title">AI Skills</div>
+      <div class="card-desc">Background replacement, virtual try-on, style recognition, and more.</div>
+    </div>
+    <div class="card" onclick="navigateTo('models')">
+      <div class="card-emoji">&#129302;</div>
+      <div class="card-title">AI Models</div>
+      <div class="card-desc">Learn about the Gemini and Veo models behind the canvas.</div>
+    </div>
+  </div>
+
+  <h2>What can you build?</h2>
+  <ul>
+    <li><strong>Image generation</strong> &mdash; describe any scene, Gemini turns text into images</li>
+    <li><strong>Image editing</strong> &mdash; change backgrounds, swap models, try on clothing</li>
+    <li><strong>Video generation</strong> &mdash; animate images or prompts with Veo</li>
+    <li><strong>Style analysis</strong> &mdash; recognize art styles and clothing categories from images</li>
+    <li><strong>Workflow chaining</strong> &mdash; connect nodes to feed results between operations</li>
+  </ul>
+
+  <h2>Tech Stack</h2>
+  <table>
+    <tr><th>Layer</th><th>Technology</th></tr>
+    <tr><td>Framework</td><td>React 19 + TypeScript</td></tr>
+    <tr><td>Canvas</td><td>React Flow (@xyflow/react)</td></tr>
+    <tr><td>AI</td><td>Google Gemini SDK + Veo</td></tr>
+    <tr><td>Styling</td><td>Tailwind CSS v4</td></tr>
+    <tr><td>Build</td><td>Vite 6</td></tr>
+  </table>
+
+  <div class="page-nav">
+    <span class="spacer"></span>
+    <a onclick="navigateTo('quickstart')">
+      <span class="nav-label">Next</span>
+      <span class="nav-title">Quick Start &rarr;</span>
+    </a>
+  </div>
+</section>
+
+<!-- ==================== QUICK START ==================== -->
+<section class="page-section" id="page-quickstart">
+  <h1>Quick Start</h1>
+  <p class="lead">Get Musey AI Lab running on your machine and generate your first image in minutes.</p>
+
+  <h2>Prerequisites</h2>
+  <ul>
+    <li><strong>Node.js</strong> &ge; 20.0.0</li>
+    <li>A valid <strong>Google Gemini API Key</strong> (<a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--accent)">get one here</a>)</li>
+  </ul>
+
+  <h2>Installation</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-content">
+        <h3>Clone the repository</h3>
+        <pre><code>git clone &lt;repo-url&gt;
+cd musey-ai-lab</code></pre>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-content">
+        <h3>Install dependencies</h3>
+        <pre><code>npm install</code></pre>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-content">
+        <h3>Start the dev server</h3>
+        <pre><code>npm run dev</code></pre>
+        <p>Open <code>http://localhost:3000</code> in your browser.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-content">
+        <h3>Configure your API Key</h3>
+        <p>Click the avatar icon in the bottom-left sidebar, enter your Gemini API Key, and press save. The key is stored locally in your browser &mdash; it is never sent to any third-party server.</p>
+      </div>
+    </div>
+  </div>
+
+  <h2>Your First Image</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-content">
+        <h3>Create a node</h3>
+        <p>Double-click anywhere on the canvas, or use the <strong>+</strong> button in the sidebar to add an Image Node.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-content">
+        <h3>Write a prompt</h3>
+        <p>Type a description of the image you want to create, e.g. <code>A serene Japanese garden at sunset</code>.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-content">
+        <h3>Generate</h3>
+        <p>Click the Generate button. Your image will appear in the node within seconds.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="callout tip">
+    <span class="callout-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></span>
+    <div>You can also use voice input by clicking the microphone icon in the prompt area.</div>
+  </div>
+
+  <h2>Build Commands</h2>
+  <table>
+    <tr><th>Command</th><th>Description</th></tr>
+    <tr><td><code>npm run dev</code></td><td>Start dev server at localhost:3000</td></tr>
+    <tr><td><code>npm run build</code></td><td>Production build to /dist</td></tr>
+    <tr><td><code>npm run preview</code></td><td>Preview production build locally</td></tr>
+    <tr><td><code>npm run lint</code></td><td>TypeScript type checking</td></tr>
+    <tr><td><code>npm run clean</code></td><td>Remove /dist directory</td></tr>
+  </table>
+
+  <div class="page-nav">
+    <a onclick="navigateTo('overview')">
+      <span class="nav-label">Previous</span>
+      <span class="nav-title">&larr; Overview</span>
+    </a>
+    <a onclick="navigateTo('concepts')">
+      <span class="nav-label">Next</span>
+      <span class="nav-title">Core Concepts &rarr;</span>
+    </a>
+  </div>
+</section>
+
+<!-- ==================== CONCEPTS ==================== -->
+<section class="page-section" id="page-concepts">
+  <h1>Core Concepts</h1>
+  <p class="lead">Understanding the building blocks of Musey AI Lab: the infinite canvas, nodes, edges, and how data flows between them.</p>
+
+  <h2>The Infinite Canvas</h2>
+  <p>The canvas is an infinite 2D space where you build your AI workflows. You can pan by dragging the background, zoom with the scroll wheel, and arrange nodes freely in any layout.</p>
+
+  <h2>Nodes</h2>
+  <p>Nodes are the core units of the canvas. Each node represents a single operation or piece of content:</p>
+  <ul>
+    <li><strong>Image Node</strong> &mdash; Generate, edit, and analyze images using AI. Supports text prompts, reference images, and skills.</li>
+    <li><strong>Video Node</strong> &mdash; Generate short videos from prompts or images using the Veo model.</li>
+  </ul>
+  <p>Nodes can be moved, resized, and connected to each other. Each node has <strong>input handles</strong> (left side) and <strong>output handles</strong> (right side).</p>
+
+  <h2>Edges (Connections)</h2>
+  <p>Edges are the lines that connect nodes. When you connect an Image Node's output to another node's input, the generated image becomes available as a <strong>reference image</strong> in the downstream node.</p>
+  <p>This enables powerful workflows like:</p>
+  <ul>
+    <li>Generate an image &rarr; change its background</li>
+    <li>Generate a person &rarr; try on different clothes</li>
+    <li>Generate an image &rarr; animate it into a video</li>
+  </ul>
+
+  <h2>Reference Images</h2>
+  <p>When nodes are connected, the upstream image appears in the downstream node's reference list. You can mention references in your prompt using the <code>@</code> syntax to tell the AI exactly which image to use and how.</p>
+
+  <h2>Skills</h2>
+  <p>Skills are pre-built AI operations that go beyond simple text-to-image generation. They use specialized prompt chains to achieve complex editing tasks like background replacement, model swapping, and virtual try-on.</p>
+
+  <div class="callout info">
+    <span class="callout-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
+    <div>All node state (positions, connections, images) is stored in your browser's memory. Refreshing the page will reset the canvas.</div>
+  </div>
+
+  <div class="page-nav">
+    <a onclick="navigateTo('quickstart')">
+      <span class="nav-label">Previous</span>
+      <span class="nav-title">&larr; Quick Start</span>
+    </a>
+    <a onclick="navigateTo('image-node')">
+      <span class="nav-label">Next</span>
+      <span class="nav-title">Image Node &rarr;</span>
+    </a>
+  </div>
+</section>
+
+<!-- ==================== IMAGE NODE ==================== -->
+<section class="page-section" id="page-image-node">
+  <h1>Image Node</h1>
+  <p class="lead">The Image Node is the primary building block of your canvas. It handles text-to-image generation, image editing, and AI-powered skills.</p>
+
+  <h2>Creating an Image Node</h2>
+  <ul>
+    <li><strong>Double-click</strong> on the empty canvas</li>
+    <li>Use the <strong>+</strong> button in the left sidebar</li>
+    <li>Drag and drop an image file onto the canvas</li>
+  </ul>
+
+  <h2>Generation Parameters</h2>
+  <table>
+    <tr><th>Parameter</th><th>Options</th><th>Default</th></tr>
+    <tr><td>Model</td><td>Nano Banana 2 / Nano Banana / Nano Banana Pro</td><td>Nano Banana 2</td></tr>
+    <tr><td>Aspect Ratio</td><td>1:1, 16:9, 9:16, 4:3, 3:4</td><td>1:1</td></tr>
+    <tr><td>Quantity</td><td>1 &ndash; 4 images</td><td>1</td></tr>
+  </table>
+
+  <h2>Prompt Input</h2>
+  <p>The prompt text area supports:</p>
+  <ul>
+    <li><strong>Text input</strong> &mdash; describe what you want to generate</li>
+    <li><strong>Voice input</strong> &mdash; click the mic icon to use speech-to-text</li>
+    <li><strong>Preset prompts</strong> &mdash; quick-access common prompt templates</li>
+    <li><strong>@ references</strong> &mdash; mention connected images by name</li>
+  </ul>
+
+  <h2>Image Interaction</h2>
+  <p>Generated images support the following actions:</p>
+  <ul>
+    <li><strong>Preview</strong> &mdash; click to open a full-size modal preview</li>
+    <li><strong>Download</strong> &mdash; save the image to your local machine</li>
+    <li><strong>Replace</strong> &mdash; swap the image with a new upload</li>
+    <li><strong>Delete</strong> &mdash; remove the image from the node</li>
+    <li><strong>Create output node</strong> &mdash; send this image to a new connected node</li>
+  </ul>
+
+  <h2>Importing Images</h2>
+  <p>You can bring existing images into the canvas by:</p>
+  <ul>
+    <li>Dragging image files directly onto the canvas (supports multi-file drop)</li>
+    <li>Using the upload button within a node</li>
+  </ul>
+
+  <div class="page-nav">
+    <a onclick="navigateTo('concepts')">
+      <span class="nav-label">Previous</span>
+      <span class="nav-title">&larr; Core Concepts</span>
+    </a>
+    <a onclick="navigateTo('video-node')">
+      <span class="nav-label">Next</span>
+      <span class="nav-title">Video Node &rarr;</span>
+    </a>
+  </div>
+</section>
+
+<!-- ==================== VIDEO NODE ==================== -->
+<section class="page-section" id="page-video-node">
+  <h1>Video Node</h1>
+  <p class="lead">Generate short AI-powered videos using the Veo model, directly on the canvas.</p>
+
+  <h2>Creating a Video Node</h2>
+  <p>Use the sidebar's <strong>+</strong> menu and select "Video Node". You can also convert an image into a video by connecting an Image Node to a Video Node.</p>
+
+  <h2>Video Generation</h2>
+  <p>The Video Node uses the <strong>Veo 3.1</strong> model to generate videos. Provide a text prompt describing the motion and scene you want.</p>
+
+  <div class="callout info">
+    <span class="callout-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
+    <div>Video generation is asynchronous &mdash; it may take 30 seconds to a few minutes. A progress indicator shows the current status.</div>
+  </div>
+
+  <h2>Video Controls</h2>
+  <ul>
+    <li><strong>Play / Pause</strong> &mdash; toggle video playback</li>
+    <li><strong>Progress bar</strong> &mdash; seek to any point in the video</li>
+    <li><strong>Download</strong> &mdash; save the video file locally</li>
+    <li><strong>Delete</strong> &mdash; remove the video</li>
+  </ul>
+
+  <h2>Image-to-Video</h2>
+  <p>Connect an Image Node's output to a Video Node's input. The generated image will be used as the first frame, and the Veo model will animate it based on your prompt.</p>
+
+  <div class="page-nav">
+    <a onclick="navigateTo('image-node')">
+      <span class="nav-label">Previous</span>
+      <span class="nav-title">&larr; Image Node</span>
+    </a>
+    <a onclick="navigateTo('connections')">
+      <span class="nav-label">Next</span>
+      <span class="nav-title">Connections &rarr;</span>
+    </a>
+  </div>
+</section>
+
+<!-- ==================== CONNECTIONS ==================== -->
+<section class="page-section" id="page-connections">
+  <h1>Connections & References</h1>
+  <p class="lead">Learn how to link nodes together to build multi-step AI workflows.</p>
+
+  <h2>Creating Connections</h2>
+  <p>Drag from a node's <strong>output handle</strong> (right side) to another node's <strong>input handle</strong> (left side) to create a connection. The upstream node's generated images automatically become available as reference images in the downstream node.</p>
+
+  <h2>Using References</h2>
+  <p>Once connected, reference images appear in the downstream node's reference panel. You can:</p>
+  <ul>
+    <li>Use them implicitly &mdash; the AI will consider connected images as context</li>
+    <li>Use <code>@reference-name</code> in your prompt to explicitly reference a specific image</li>
+  </ul>
+
+  <h2>Workflow Examples</h2>
+
+  <h3>Sequential Editing</h3>
+  <pre><code>[Image A: Generate portrait] &rarr; [Image B: Change background] &rarr; [Image C: Apply style]</code></pre>
+
+  <h3>Multi-Reference Composition</h3>
+  <pre><code>[Image A: Person photo]  \
+                           &rarr; [Image C: Virtual try-on]
+[Image B: Clothing item] /</code></pre>
+
+  <h3>Image to Video</h3>
+  <pre><code>[Image A: Generate scene] &rarr; [Video B: Animate with Veo]</code></pre>
+
+  <div class="callout tip">
+    <span class="callout-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></span>
+    <div>Generated images have stable names like "Generated Image Result 1" so you can reference them consistently in downstream prompts.</div>
+  </div>
+
+  <div class="page-nav">
+    <a onclick="navigateTo('video-node')">
+      <span class="nav-label">Previous</span>
+      <span class="nav-title">&larr; Video Node</span>
+    </a>
+    <a onclick="navigateTo('history')">
+      <span class="nav-label">Next</span>
+      <span class="nav-title">History &rarr;</span>
+    </a>
+  </div>
+</section>
+
+<!-- ==================== HISTORY ==================== -->
+<section class="page-section" id="page-history">
+  <h1>History</h1>
+  <p class="lead">Track all your generation requests, results, and errors in the history panel.</p>
+
+  <h2>History Panel</h2>
+  <p>Open the history panel from the left sidebar. Each record shows:</p>
+  <ul>
+    <li><strong>Prompt</strong> &mdash; the text prompt used</li>
+    <li><strong>Status</strong> &mdash; success, error, or in-progress</li>
+    <li><strong>Duration</strong> &mdash; how long the generation took</li>
+    <li><strong>Timestamp</strong> &mdash; when the request was made</li>
+    <li><strong>Error details</strong> &mdash; if generation failed, the error message</li>
+  </ul>
+
+  <h2>Persistence</h2>
+  <p>History records are stored in your browser's <code>localStorage</code> under the key <code>muse-history</code>. They persist across browser sessions but are local to your device.</p>
+
+  <div class="callout warning">
+    <span class="callout-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/></svg></span>
+    <div>Clearing your browser data will erase all history records. There is no cloud backup.</div>
+  </div>
+
+  <div class="page-nav">
+    <a onclick="navigateTo('connections')">
+      <span class="nav-label">Previous</span>
+      <span class="nav-title">&larr; Connections</span>
+    </a>
+    <a onclick="navigateTo('skills-overview')">
+      <span class="nav-label">Next</span>
+      <span class="nav-title">Skills Overview &rarr;</span>
+    </a>
+  </div>
+</section>
+
+<!-- ==================== SKILLS OVERVIEW ==================== -->
+<section class="page-section" id="page-skills-overview">
+  <h1>AI Skills</h1>
+  <p class="lead">Skills are specialized AI operations that go beyond simple text-to-image. They use multi-step prompt chains and reference images to perform complex editing and analysis tasks.</p>
+
+  <h2>Available Skills</h2>
+
+  <div class="skill-card" onclick="navigateTo('skill-bg')">
+    <div class="skill-card-header">
+      <span class="skill-card-icon">&#127748;</span>
+      <span class="skill-card-name">Change Background</span>
+      <span class="badge badge-purple">Editing</span>
+    </div>
+    <p style="margin:0;font-size:14px;color:var(--text-secondary)">Replace or transform the background of an image while keeping the subject intact.</p>
+    <div class="skill-card-modes">
+      <span class="badge badge-blue">Atmosphere Blend</span>
+      <span class="badge badge-blue">Precise Replace</span>
+    </div>
+  </div>
+
+  <div class="skill-card" onclick="navigateTo('skill-model')">
+    <div class="skill-card-header">
+      <span class="skill-card-icon">&#129489;</span>
+      <span class="skill-card-name">Change Model</span>
+      <span class="badge badge-purple">Editing</span>
+    </div>
+    <p style="margin:0;font-size:14px;color:var(--text-secondary)">Replace the person or face in an image while preserving clothing, pose, and background.</p>
+    <div class="skill-card-modes">
+      <span class="badge badge-blue">Face Swap</span>
+      <span class="badge badge-blue">Replica Mode</span>
+    </div>
+  </div>
+
+  <div class="skill-card" onclick="navigateTo('skill-tryon')">
+    <div class="skill-card-header">
+      <span class="skill-card-icon">&#128087;</span>
+      <span class="skill-card-name">Virtual Try-On</span>
+      <span class="badge badge-purple">Editing</span>
+    </div>
+    <p style="margin:0;font-size:14px;color:var(--text-secondary)">Apply clothing items to a person image with realistic fit and perspective.</p>
+    <div class="skill-card-modes">
+      <span class="badge badge-blue">Multi-Garment</span>
+    </div>
+  </div>
+
+  <div class="skill-card" onclick="navigateTo('skill-clothing')">
+    <div class="skill-card-header">
+      <span class="skill-card-icon">&#128085;</span>
+      <span class="skill-card-name">Clothing Category Recognition</span>
+      <span class="badge badge-green">Analysis</span>
+    </div>
+    <p style="margin:0;font-size:14px;color:var(--text-secondary)">Identify and classify clothing items in an image by type (upper, lower, overall).</p>
+    <div class="skill-card-modes">
+      <span class="badge badge-blue">Fixed Range</span>
+      <span class="badge badge-blue">Free Form</span>
+    </div>
+  </div>
+
+  <div class="skill-card" onclick="navigateTo('skill-art')">
+    <div class="skill-card-header">
+      <span class="skill-card-icon">&#127912;</span>
+      <span class="skill-card-name">Art Style Recognition</span>
+      <span class="badge badge-green">Analysis</span>
+    </div>
+    <p style="margin:0;font-size:14px;color:var(--text-secondary)">Recognize artistic and fashion styles from images across 41 predefined categories.</p>
+    <div class="skill-card-modes">
+      <span class="badge badge-blue">41 Style Categories</span>
+      <span class="badge badge-blue">8 Style Groups</span>
+    </div>
+  </div>
+
+  <h2>How Skills Work</h2>
+  <p>Skills use a multi-step pipeline:</p>
+  <ol>
+    <li><strong>Feature extraction</strong> &mdash; analyze the input image(s) to understand content and context</li>
+    <li><strong>Prompt construction</strong> &mdash; build specialized prompts with extracted features</li>
+    <li><strong>Generation / Analysis</strong> &mdash; execute the AI model with the crafted prompt</li>
+    <li><strong>Result delivery</strong> &mdash; display the output in the node or a new connected node</li>
+  </ol>
+
+  <div class="page-nav">
+    <a onclick="navigateTo('history')">
+      <span class="nav-label">Previous</span>
+      <span class="nav-title">&larr; History</span>
+    </a>
+    <a onclick="navigateTo('skill-bg')">
+      <span class="nav-label">Next</span>
+      <span class="nav-title">Change Background &rarr;</span>
+    </a>
+  </div>
+</section>
+
+<!-- ==================== SKILL: CHANGE BACKGROUND ==================== -->
+<section class="page-section" id="page-skill-bg">
+  <h1>Change Background</h1>
+  <p class="lead">Replace or blend the background of an image while perfectly preserving the subject.</p>
+
+  <h2>Modes</h2>
+
+  <h3>Atmosphere Blend</h3>
+  <p>Extracts background features from the original image, then regenerates with text guidance to create a harmonious atmosphere shift. Best for changing the mood or setting of a scene while keeping it natural.</p>
+  <ul>
+    <li>Uses <code>gemini-3.1-pro-preview</code> for scene extraction</li>
+    <li>Produces natural, cohesive results</li>
+    <li>Example: Change a daytime photo to a sunset scene</li>
+  </ul>
+
+  <h3>Precise Replace</h3>
+  <p>Direct dual-image fusion that replaces the background with surgical precision. Best when you have a specific background in mind.</p>
+  <ul>
+    <li>Provide a text description of the new background</li>
+    <li>Keeps subject edges sharp and clean</li>
+    <li>Example: Place a model in a specific studio or location</li>
+  </ul>
+
+  <h2>Usage</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-content">
+        <p>Select an image in a node, or ensure the node has a generated image</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-content">
+        <p>Click the <strong>Change Background</strong> skill button</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-content">
+        <p>Choose the mode (Atmosphere Blend or Precise Replace)</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-content">
+        <p>Enter your background description and generate</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="page-nav">
+    <a onclick="navigateTo('skills-overview')">
+      <span class="nav-label">Previous</span>
+      <span class="nav-title">&larr; Skills Overview</span>
+    </a>
+    <a onclick="navigateTo('skill-model')">
+      <span class="nav-label">Next</span>
+      <span class="nav-title">Change Model &rarr;</span>
+    </a>
+  </div>
+</section>
+
+<!-- ==================== SKILL: CHANGE MODEL ==================== -->
+<section class="page-section" id="page-skill-model">
+  <h1>Change Model</h1>
+  <p class="lead">Replace the person or face in an image while preserving clothing, pose, and scene.</p>
+
+  <h2>Modes</h2>
+
+  <h3>Face Swap</h3>
+  <p>Direct facial replacement &mdash; swaps only the face while keeping everything else (body, clothes, background) intact. Best for quick face changes.</p>
+
+  <h3>Replica Mode</h3>
+  <p>A more advanced pipeline that extracts scene features and fashion details, then recombines them with the target face. Produces more natural and coherent results for full-body shots.</p>
+  <ul>
+    <li>Extracts scene + fashion features as structured JSON</li>
+    <li>Dynamically injects into generation prompt</li>
+    <li>Better for preserving outfit and pose details</li>
+  </ul>
+
+  <h2>Requirements</h2>
+  <ul>
+    <li>At least <strong>two images</strong>: the original scene and the target face</li>
+    <li>Connect both image nodes to the skill node</li>
+  </ul>
+
+  <div class="page-nav">
+    <a onclick="navigateTo('skill-bg')">
+      <span class="nav-label">Previous</span>
+      <span class="nav-title">&larr; Change Background</span>
+    </a>
+    <a onclick="navigateTo('skill-tryon')">
+      <span class="nav-label">Next</span>
+      <span class="nav-title">Virtual Try-On &rarr;</span>
+    </a>
+  </div>
+</section>
+
+<!-- ==================== SKILL: VIRTUAL TRY-ON ==================== -->
+<section class="page-section" id="page-skill-tryon">
+  <h1>Virtual Try-On</h1>
+  <p class="lead">Apply clothing items to a person image with realistic fit, perspective, and color accuracy.</p>
+
+  <h2>How It Works</h2>
+  <p>Provide a base image of a person and one or more clothing images. The AI will dress the person in the provided garments while preserving their pose, body shape, and background.</p>
+
+  <h2>Supported Garment Types</h2>
+  <table>
+    <tr><th>Category</th><th>Examples</th></tr>
+    <tr><td>Top</td><td>T-shirt, blouse, jacket, sweater, coat</td></tr>
+    <tr><td>Bottom</td><td>Pants, skirt, shorts, jeans</td></tr>
+    <tr><td>Full Body</td><td>Dress, jumpsuit, bodysuit</td></tr>
+    <tr><td>Accessories</td><td>Shoes, bags, hats</td></tr>
+  </table>
+
+  <h2>Multi-Garment Support</h2>
+  <p>You can apply multiple clothing items simultaneously. Each garment image is tagged with its category (top, pants, shoes, etc.) for accurate placement.</p>
+
+  <div class="callout tip">
+    <span class="callout-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg></span>
+    <div>For best results, use clean product photos of clothing items on a white or transparent background.</div>
+  </div>
+
+  <div class="page-nav">
+    <a onclick="navigateTo('skill-model')">
+      <span class="nav-label">Previous</span>
+      <span class="nav-title">&larr; Change Model</span>
+    </a>
+    <a onclick="navigateTo('skill-clothing')">
+      <span class="nav-label">Next</span>
+      <span class="nav-title">Clothing Recognition &rarr;</span>
+    </a>
+  </div>
+</section>
+
+<!-- ==================== SKILL: CLOTHING RECOGNITION ==================== -->
+<section class="page-section" id="page-skill-clothing">
+  <h1>Clothing Category Recognition</h1>
+  <p class="lead">Automatically identify and classify clothing items in an image.</p>
+
+  <h2>Modes</h2>
+
+  <h3>Fixed Range</h3>
+  <p>Match clothing against a predefined set of categories provided by the user. Useful when you know the possible categories.</p>
+
+  <h3>Free Form</h3>
+  <p>Open-ended analysis that describes the design, silhouette, and type of each clothing item without predefined constraints.</p>
+
+  <h2>Output Format</h2>
+  <p>Results are returned as structured JSON with three fields:</p>
+  <pre><code>{
+  "upper_cloth": "Oversized denim jacket",
+  "lower_cloth": "High-waisted wide-leg pants",
+  "overall_cloth": null
+}</code></pre>
+
+  <div class="callout info">
+    <span class="callout-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
+    <div><strong>Mutual exclusivity rule:</strong> If <code>overall_cloth</code> is detected (e.g., a dress), <code>upper_cloth</code> and <code>lower_cloth</code> will be null, and vice versa.</div>
+  </div>
+
+  <div class="page-nav">
+    <a onclick="navigateTo('skill-tryon')">
+      <span class="nav-label">Previous</span>
+      <span class="nav-title">&larr; Virtual Try-On</span>
+    </a>
+    <a onclick="navigateTo('skill-art')">
+      <span class="nav-label">Next</span>
+      <span class="nav-title">Art Style Recognition &rarr;</span>
+    </a>
+  </div>
+</section>
+
+<!-- ==================== SKILL: ART STYLE ==================== -->
+<section class="page-section" id="page-skill-art">
+  <h1>Art Style Recognition</h1>
+  <p class="lead">Identify artistic and fashion style labels from images across 41 predefined categories in 8 style groups.</p>
+
+  <h2>Style Categories</h2>
+  <p>The system recognizes styles across 8 major groups, including but not limited to:</p>
+  <ul>
+    <li><strong>Classic</strong> &mdash; Minimalist, Preppy, Business Casual</li>
+    <li><strong>Street</strong> &mdash; Streetwear, Grunge, Hip-Hop</li>
+    <li><strong>Romantic</strong> &mdash; Cottagecore, Bohemian, Vintage</li>
+    <li><strong>Avant-Garde</strong> &mdash; Deconstructed, Futuristic, Art-Inspired</li>
+    <li><strong>Cultural</strong> &mdash; Ethnic, Traditional Revival</li>
+    <li><strong>Sporty</strong> &mdash; Athleisure, Gorpcore, Techwear</li>
+    <li><strong>Luxury</strong> &mdash; Old Money, Quiet Luxury</li>
+    <li><strong>Subculture</strong> &mdash; Punk, Gothic, Y2K</li>
+  </ul>
+
+  <h2>Recognition Pipeline</h2>
+  <ol>
+    <li><strong>Dense description</strong> &mdash; Generate a detailed style description using Gemini</li>
+    <li><strong>Vector search</strong> &mdash; Find closest matches from the 41 style definitions</li>
+    <li><strong>Score fusion</strong> &mdash; Apply threshold-based filtering</li>
+    <li><strong>LLM fallback</strong> &mdash; If no clear match, use LLM reasoning</li>
+  </ol>
+
+  <h2>Output</h2>
+  <p>Results include the matched style label and a brief explanation of why it was chosen:</p>
+  <pre><code>{
+  "label": "Cottagecore",
+  "reason": "Floral print dress with puff sleeves, straw hat, and natural outdoor setting suggest a romanticized rural aesthetic."
+}</code></pre>
+
+  <div class="page-nav">
+    <a onclick="navigateTo('skill-clothing')">
+      <span class="nav-label">Previous</span>
+      <span class="nav-title">&larr; Clothing Recognition</span>
+    </a>
+    <a onclick="navigateTo('models')">
+      <span class="nav-label">Next</span>
+      <span class="nav-title">AI Models &rarr;</span>
+    </a>
+  </div>
+</section>
+
+<!-- ==================== MODELS ==================== -->
+<section class="page-section" id="page-models">
+  <h1>AI Models</h1>
+  <p class="lead">Musey AI Lab uses Google's Gemini and Veo model families for all generation and analysis tasks.</p>
+
+  <h2>Image Generation Models</h2>
+  <table>
+    <tr><th>Display Name</th><th>Model ID</th><th>Best For</th></tr>
+    <tr><td>Nano Banana 2</td><td><code>gemini-3.1-flash-image-preview</code></td><td>Fast generation, default choice</td></tr>
+    <tr><td>Nano Banana</td><td><code>gemini-3.1-flash-image</code></td><td>Stable generation</td></tr>
+    <tr><td>Nano Banana Pro</td><td><code>gemini-3.1-pro-image-preview</code></td><td>Highest quality, slower</td></tr>
+  </table>
+
+  <h2>Video Generation Model</h2>
+  <table>
+    <tr><th>Model ID</th><th>Purpose</th></tr>
+    <tr><td><code>veo-3.1-generate-preview</code></td><td>Text-to-video and image-to-video generation</td></tr>
+  </table>
+
+  <h2>Analysis Models</h2>
+  <table>
+    <tr><th>Model ID</th><th>Purpose</th></tr>
+    <tr><td><code>gemini-3.1-flash-lite-preview</code></td><td>Clothing category &amp; art style recognition</td></tr>
+    <tr><td><code>gemini-3.1-pro-preview</code></td><td>Scene extraction for skills</td></tr>
+  </table>
+
+  <div class="callout info">
+    <span class="callout-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg></span>
+    <div>All models require a valid Google Gemini API key. Video generation (Veo) may have separate quota limits.</div>
+  </div>
+
+  <div class="page-nav">
+    <a onclick="navigateTo('skill-art')">
+      <span class="nav-label">Previous</span>
+      <span class="nav-title">&larr; Art Style Recognition</span>
+    </a>
+    <a onclick="navigateTo('config')">
+      <span class="nav-label">Next</span>
+      <span class="nav-title">Configuration &rarr;</span>
+    </a>
+  </div>
+</section>
+
+<!-- ==================== CONFIGURATION ==================== -->
+<section class="page-section" id="page-config">
+  <h1>Configuration</h1>
+  <p class="lead">Customize your Musey AI Lab setup.</p>
+
+  <h2>API Key</h2>
+  <p>Your Gemini API key is stored in <code>localStorage</code> under the key <code>gemini_api_key</code>. It is never sent to any server other than Google's API endpoints.</p>
+  <p>To update your key:</p>
+  <ol>
+    <li>Click the avatar icon in the sidebar (bottom-left)</li>
+    <li>Enter or paste your new API key</li>
+    <li>Click the save icon</li>
+  </ol>
+
+  <h2>Language</h2>
+  <p>Toggle between Chinese and English using the language switch in the sidebar's user menu. The UI will update immediately.</p>
+
+  <h2>Build Configuration</h2>
+  <p>The project uses Vite for builds with the following optimizations:</p>
+  <ul>
+    <li><strong>Code splitting</strong> &mdash; AI, Flow, and UI libraries are split into separate chunks</li>
+    <li><strong>Path alias</strong> &mdash; <code>@/</code> maps to the project root</li>
+    <li><strong>Tailwind CSS v4</strong> &mdash; via the @tailwindcss/vite plugin</li>
+  </ul>
+
+  <h2>Environment Variables</h2>
+  <table>
+    <tr><th>Variable</th><th>Purpose</th></tr>
+    <tr><td><code>DISABLE_HMR</code></td><td>Set to "true" to disable Hot Module Replacement</td></tr>
+    <tr><td><code>GITHUB_RUN_NUMBER</code></td><td>Auto-populated in CI for build numbering</td></tr>
+  </table>
+
+  <div class="page-nav">
+    <a onclick="navigateTo('models')">
+      <span class="nav-label">Previous</span>
+      <span class="nav-title">&larr; AI Models</span>
+    </a>
+    <a onclick="navigateTo('shortcuts')">
+      <span class="nav-label">Next</span>
+      <span class="nav-title">Shortcuts &rarr;</span>
+    </a>
+  </div>
+</section>
+
+<!-- ==================== SHORTCUTS ==================== -->
+<section class="page-section" id="page-shortcuts">
+  <h1>Shortcuts</h1>
+  <p class="lead">Keyboard and mouse shortcuts for efficient canvas navigation.</p>
+
+  <h2>Canvas Navigation</h2>
+  <table>
+    <tr><th>Action</th><th>Shortcut</th></tr>
+    <tr><td>Pan canvas</td><td>Click + drag on background</td></tr>
+    <tr><td>Zoom in/out</td><td>Scroll wheel / Pinch gesture</td></tr>
+    <tr><td>Fit view</td><td>Double-click on background (empty area)</td></tr>
+  </table>
+
+  <h2>Node Operations</h2>
+  <table>
+    <tr><th>Action</th><th>Shortcut</th></tr>
+    <tr><td>Create Image Node</td><td>Double-click on empty canvas</td></tr>
+    <tr><td>Move node</td><td>Click + drag on node header</td></tr>
+    <tr><td>Delete node</td><td>Select node + <kbd>Delete</kbd> / <kbd>Backspace</kbd></td></tr>
+    <tr><td>Connect nodes</td><td>Drag from output handle to input handle</td></tr>
+  </table>
+
+  <h2>Image Operations</h2>
+  <table>
+    <tr><th>Action</th><th>Shortcut</th></tr>
+    <tr><td>Import images</td><td>Drag files onto canvas</td></tr>
+    <tr><td>Preview image</td><td>Click on image thumbnail</td></tr>
+  </table>
+
+  <div class="page-nav">
+    <a onclick="navigateTo('config')">
+      <span class="nav-label">Previous</span>
+      <span class="nav-title">&larr; Configuration</span>
+    </a>
+    <a onclick="navigateTo('faq')">
+      <span class="nav-label">Next</span>
+      <span class="nav-title">FAQ &rarr;</span>
+    </a>
+  </div>
+</section>
+
+<!-- ==================== FAQ ==================== -->
+<section class="page-section" id="page-faq">
+  <h1>FAQ</h1>
+  <p class="lead">Frequently asked questions about Musey AI Lab.</p>
+
+  <h2>General</h2>
+
+  <h3>Is my API key safe?</h3>
+  <p>Yes. Your API key is stored only in your browser's <code>localStorage</code>. It is sent directly to Google's API endpoints and never passes through any third-party server.</p>
+
+  <h3>Does the app require a backend?</h3>
+  <p>No. Musey AI Lab is a pure frontend application. All AI calls go directly from your browser to Google's APIs.</p>
+
+  <h3>Will my canvas be saved if I refresh?</h3>
+  <p>Currently, the canvas state (nodes, connections, images) is stored in memory only. Refreshing the page will reset the canvas. History records are persisted in localStorage.</p>
+
+  <h2>Generation</h2>
+
+  <h3>Why is my generation failing?</h3>
+  <p>Common causes:</p>
+  <ul>
+    <li><strong>Invalid API key</strong> &mdash; check your key in the sidebar settings</li>
+    <li><strong>Quota exceeded</strong> &mdash; you may have hit the API rate limit</li>
+    <li><strong>Content policy</strong> &mdash; the prompt may have triggered safety filters</li>
+  </ul>
+
+  <h3>Why does video generation take so long?</h3>
+  <p>Video generation with Veo is computationally intensive and runs asynchronously on Google's servers. Expect 30 seconds to several minutes depending on complexity.</p>
+
+  <h3>Can I generate multiple images at once?</h3>
+  <p>Yes. Set the "Quantity" parameter in the Image Node to generate 1-4 images per request.</p>
+
+  <h2>Skills</h2>
+
+  <h3>Why does Change Model need two images?</h3>
+  <p>The skill needs the original scene image (with the person to replace) and a reference image of the target face/person.</p>
+
+  <h3>What image formats are supported?</h3>
+  <p>PNG, JPEG, and WebP are supported for import. Generated images are returned as PNG.</p>
+
+  <h2>Deployment</h2>
+
+  <h3>How do I deploy to production?</h3>
+  <p>Run <code>npm run build</code> to create a production build in the <code>/dist</code> folder. Deploy the contents to any static hosting provider (Vercel, Netlify, GitHub Pages, etc.).</p>
+
+  <div class="callout warning">
+    <span class="callout-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0zM12 9v4M12 17h.01"/></svg></span>
+    <div>Do not embed API keys in environment variables during build. The current user-input model is the secure approach for a frontend-only application.</div>
+  </div>
+
+  <div class="page-nav">
+    <a onclick="navigateTo('shortcuts')">
+      <span class="nav-label">Previous</span>
+      <span class="nav-title">&larr; Shortcuts</span>
+    </a>
+    <span class="spacer"></span>
+  </div>
+</section>
+
+</div>
+</div>
+
+<script>
+function navigateTo(pageId) {
+  // Update active page
+  document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+  const target = document.getElementById('page-' + pageId);
+  if (target) target.classList.add('active');
+
+  // Update active nav
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const navItem = document.querySelector('.nav-item[data-page="' + pageId + '"]');
+  if (navItem) {
+    navItem.classList.add('active');
+    navItem.scrollIntoView({ block: 'nearest' });
+  }
+
+  // Update URL hash
+  history.pushState(null, '', '#' + pageId);
+
+  // Scroll to top
+  window.scrollTo(0, 0);
+
+  // Close mobile sidebar
+  document.getElementById('sidebar').classList.remove('open');
+}
+
+function filterNav(query) {
+  const q = query.toLowerCase();
+  document.querySelectorAll('.nav-item').forEach(item => {
+    const text = item.textContent.toLowerCase();
+    item.style.display = text.includes(q) ? '' : 'none';
+  });
+  document.querySelectorAll('.nav-group').forEach(group => {
+    const visible = group.querySelectorAll('.nav-item[style=""], .nav-item:not([style])');
+    // Show group title if any items visible
+  });
+}
+
+// Handle hash navigation on load
+window.addEventListener('load', () => {
+  const hash = location.hash.slice(1);
+  if (hash) navigateTo(hash);
+});
+
+// Handle browser back/forward
+window.addEventListener('popstate', () => {
+  const hash = location.hash.slice(1);
+  if (hash) navigateTo(hash);
+});
+</script>
+
+</body>
+</html>
