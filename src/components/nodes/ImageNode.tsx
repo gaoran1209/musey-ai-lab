@@ -92,7 +92,7 @@ function ExpandableText({ text }: { text: string }) {
 /* ── Analysis result card wrapper ── */
 function AnalysisCard({ type, onDismiss, children }: { type: AnalysisType; onDismiss: (e: React.MouseEvent) => void; children: React.ReactNode }) {
   return (
-    <div className="group/card relative w-full rounded-xl border border-white/[0.05] bg-white/[0.02] px-3 py-2">
+    <div className="group/card relative rounded-xl border border-white/[0.05] bg-white/[0.02] px-3 py-2">
       <button
         type="button"
         onClick={(e) => { e.stopPropagation(); onDismiss(e); }}
@@ -909,17 +909,19 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
         </div>
       )}
 
+      {/* Image + Analysis Results Row */}
+      <div className="flex flex-row items-start gap-2">
       {/* Main Image Container */}
-      <div 
+      <div
         className={clsx(
-          "relative flex items-center justify-center overflow-hidden rounded-2xl border bg-[#1A1A1A]",
+          "relative flex shrink-0 items-center justify-center overflow-hidden rounded-2xl border bg-[#1A1A1A]",
           data.isConnectionTargetMode
             ? "border-sky-300/55 shadow-[inset_0_0_0_1px_rgba(125,211,252,0.18)]"
             : "border-white/10"
         )}
-        style={{ 
-          width: '280px', 
-          aspectRatio: data.aspectRatio || '3/4' 
+        style={{
+          width: '280px',
+          aspectRatio: data.aspectRatio || '3/4'
         }}
       >
         {data.isConnectionTargetMode && (
@@ -1061,13 +1063,13 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
         ) : null}
       </div>
 
-      {/* Persistent Analysis Results — below image, supports both types simultaneously */}
+      {/* Persistent Analysis Results — right side of image */}
       {data.analysisResults && Object.keys(data.analysisResults).length > 0 && (
-        <div className="mt-2 flex w-full flex-col gap-2">
+        <div className="flex w-[200px] flex-col gap-2 self-stretch">
           {Object.entries(data.analysisResults).map(([key, result]) => {
             if (result.loading) {
               return (
-                <div key={key} className="flex w-full items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
+                <div key={key} className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.02] px-3 py-2.5">
                   <Loader2 className="h-3.5 w-3.5 shrink-0 animate-spin text-white/30" />
                   <span className="text-[11px] text-white/30">
                     {result.type === 'clothing-category' ? '款式识别中…' : '风格识别中…'}
@@ -1078,7 +1080,7 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
 
             if (result.error) {
               return (
-                <div key={key} className="group/err relative flex w-full items-center gap-2 rounded-xl border border-red-500/10 bg-red-500/[0.03] px-3 py-2">
+                <div key={key} className="group/err relative flex items-center gap-2 rounded-xl border border-red-500/10 bg-red-500/[0.03] px-3 py-2">
                   <div className="flex h-4.5 w-4.5 shrink-0 items-center justify-center rounded bg-red-500/10">
                     <X className="h-2.5 w-2.5 text-red-400" />
                   </div>
@@ -1102,12 +1104,14 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
               return (
                 <React.Fragment key={key}>
                 <AnalysisCard type={result.type as AnalysisType} onDismiss={handleDismissAnalysis('clothing-category')}>
-                  <div className="flex items-center gap-1.5">
-                    <div className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded bg-sky-500/12">
-                      <ScanSearch className="h-3 w-3 text-sky-400/80" />
+                  <div className="flex flex-col gap-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <div className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded bg-sky-500/12">
+                        <ScanSearch className="h-3 w-3 text-sky-400/80" />
+                      </div>
+                      <span className="text-[10px] font-medium tracking-wide text-white/30">款式</span>
                     </div>
-                    <span className="text-[10px] font-medium tracking-wide text-white/30">款式</span>
-                    <div className="ml-1 flex flex-wrap gap-1">
+                    <div className="flex flex-col gap-1">
                       {(() => {
                         const d = result.data;
                         if (typeof d === 'string') {
@@ -1121,7 +1125,7 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
                         return parts.map((part) => (
                           <span
                             key={part.label}
-                            className="inline-flex items-center gap-1 rounded-md border border-sky-400/8 bg-sky-500/[0.05] px-2 py-0.5 text-[11px] leading-snug"
+                            className="inline-flex items-center gap-1 rounded-md border border-sky-400/8 bg-sky-500/[0.05] px-1.5 py-0.5 text-[11px] leading-snug"
                           >
                             <span className="text-sky-400/60">{part.label}</span>
                             <span className="text-white/65">{part.value}</span>
@@ -1164,6 +1168,7 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
           })}
         </div>
       )}
+      </div>{/* end Image + Analysis Results Row */}
 
       {/* Floating Input Panel */}
       {selected && (
