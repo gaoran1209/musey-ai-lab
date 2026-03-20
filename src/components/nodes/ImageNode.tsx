@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Handle, Position, NodeProps, Node, useReactFlow } from '@xyflow/react';
-import { UploadCloud, Send, Mic, Sparkles, Layout, Image as ImageIcon, Trash2, Download, Video as VideoIcon, Clock, Sparkle, Layers3, X, Plus, Expand, UserRound, Palette, Shirt, ChevronRight, Check } from 'lucide-react';
+import { UploadCloud, Send, Mic, Sparkles, Layout, Image as ImageIcon, Trash2, Download, Video as VideoIcon, Clock, Sparkle, Layers3, X, Plus, Expand, UserRound, Palette, Shirt, ChevronRight, Check, ScanSearch, Brush, Loader2 } from 'lucide-react';
 import clsx from 'clsx';
 import { createPortal } from 'react-dom';
 import { v4 as uuidv4 } from 'uuid';
-import { type SkillType, type SkillExecuteOptions, SKILL_MODES, TRYON_TAG_OPTIONS } from '../../services/skillPrompts';
+import { type SkillType, type SkillExecuteOptions, type AnalysisType, SKILL_MODES, TRYON_TAG_OPTIONS } from '../../services/skillPrompts';
 
 export type LinkedImageDirection = 'input' | 'output';
 
@@ -27,9 +27,16 @@ export type ImageNodeData = {
   isOutputConnectorActive?: boolean;
   isConnectionTargetMode?: boolean;
   isAnyConnectionActive?: boolean;
+  analysisResult?: {
+    type: AnalysisType;
+    loading?: boolean;
+    data?: any;
+    error?: string;
+  };
   onGenerate?: (nodeId: string, prompt: string, params?: any) => void;
   onCreateLinkedImageNode?: (nodeId: string, direction: LinkedImageDirection) => void;
   onSkillExecute?: (nodeId: string, skillType: SkillType, options?: SkillExecuteOptions) => void;
+  onAnalyze?: (nodeId: string, analysisType: AnalysisType) => void;
 };
 
 export type ImageNodeType = Node<ImageNodeData, 'imageNode'>;
@@ -521,6 +528,17 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
     });
   }, [data, id, activeSkillMenu, skillMode, skillImages]);
 
+  const handleAnalyzeClick = useCallback((analysisType: AnalysisType) => (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActiveSkillMenu(null);
+    data.onAnalyze?.(id, analysisType);
+  }, [data, id]);
+
+  const handleDismissAnalysis = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    updateNodeData(id, { analysisResult: undefined });
+  }, [id, updateNodeData]);
+
   return (
     <div className={clsx(
       "relative rounded-2xl transition-all duration-200",
@@ -632,6 +650,42 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
                 </button>
               </React.Fragment>
             ))}
+            <div className="w-px h-4 bg-white/10" />
+            <button
+              type="button"
+              onClick={handleAnalyzeClick('clothing-category')}
+              disabled={data.analysisResult?.loading}
+              className={clsx(
+                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-all whitespace-nowrap",
+                data.analysisResult?.loading && data.analysisResult.type === 'clothing-category'
+                  ? "bg-white/15 text-white"
+                  : "text-white/70 hover:bg-white/10 hover:text-white"
+              )}
+              title="款式识别"
+            >
+              {data.analysisResult?.loading && data.analysisResult.type === 'clothing-category'
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                : <ScanSearch className="w-3.5 h-3.5" />}
+              <span>款式识别</span>
+            </button>
+            <div className="w-px h-4 bg-white/10" />
+            <button
+              type="button"
+              onClick={handleAnalyzeClick('art-style')}
+              disabled={data.analysisResult?.loading}
+              className={clsx(
+                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-all whitespace-nowrap",
+                data.analysisResult?.loading && data.analysisResult.type === 'art-style'
+                  ? "bg-white/15 text-white"
+                  : "text-white/70 hover:bg-white/10 hover:text-white"
+              )}
+              title="风格识别"
+            >
+              {data.analysisResult?.loading && data.analysisResult.type === 'art-style'
+                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                : <Brush className="w-3.5 h-3.5" />}
+              <span>风格识别</span>
+            </button>
           </div>
 
           {/* Skill Panel */}
@@ -784,6 +838,71 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
                     ? '开始换模特'
                     : '开始试穿'}
               </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Analysis Result Card */}
+      {data.analysisResult && !data.analysisResult.loading && (data.analysisResult.data || data.analysisResult.error) && (
+        <div
+          className="absolute left-[calc(100%+16px)] top-0 z-40 w-[260px] rounded-2xl border border-white/10 bg-[#1e1e22]/95 p-4 shadow-[0_18px_60px_rgba(0,0,0,0.5)] backdrop-blur-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-xs font-medium text-white/60">
+              {data.analysisResult.type === 'clothing-category' ? '款式识别结果' : '风格识别结果'}
+            </span>
+            <button
+              type="button"
+              onClick={handleDismissAnalysis}
+              className="flex h-5 w-5 items-center justify-center rounded-full text-white/30 hover:bg-white/10 hover:text-white transition-colors"
+            >
+              <X className="h-3 w-3" />
+            </button>
+          </div>
+
+          {data.analysisResult.error ? (
+            <p className="text-xs text-red-400">{data.analysisResult.error}</p>
+          ) : data.analysisResult.type === 'clothing-category' ? (
+            <div className="flex flex-col gap-2">
+              {[
+                { key: 'upper', label: '上身装' },
+                { key: 'lower', label: '下身装' },
+                { key: 'overall', label: '全身装' },
+              ].map((item) => {
+                const value = data.analysisResult!.data?.[item.key];
+                if (!value || value === '为空' || value === '无') return null;
+                return (
+                  <div key={item.key} className="rounded-lg bg-white/5 px-3 py-2">
+                    <div className="text-[10px] font-medium text-white/40 mb-0.5">{item.label}</div>
+                    <div className="text-xs text-white/90 leading-relaxed">{value}</div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {data.analysisResult.data?.label && (
+                <div className="flex items-center gap-2">
+                  <span className="inline-flex items-center rounded-full bg-purple-500/20 border border-purple-400/30 px-3 py-1 text-xs font-semibold text-purple-200">
+                    {data.analysisResult.data.label}
+                  </span>
+                </div>
+              )}
+              {data.analysisResult.data?.reason && (
+                <p className="text-xs text-white/60 leading-relaxed">{data.analysisResult.data.reason}</p>
+              )}
+              {data.analysisResult.data?.description && (
+                <details className="group">
+                  <summary className="cursor-pointer text-[10px] text-white/30 hover:text-white/50 transition-colors">
+                    查看密集描述
+                  </summary>
+                  <p className="mt-1.5 text-[11px] text-white/40 leading-relaxed max-h-[120px] overflow-y-auto [scrollbar-width:thin]">
+                    {data.analysisResult.data.description}
+                  </p>
+                </details>
+              )}
             </div>
           )}
         </div>

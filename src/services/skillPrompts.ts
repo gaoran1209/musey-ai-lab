@@ -1,6 +1,7 @@
-// Skill types and prompt builders for change-background, change-model, and tryon
+// Skill types and prompt builders for change-background, change-model, tryon, and analysis
 
 export type SkillType = 'change-background' | 'change-model' | 'tryon';
+export type AnalysisType = 'clothing-category' | 'art-style';
 
 export interface SkillImageItem {
   imageSrc: string;
@@ -224,3 +225,130 @@ export const SKILL_MODES = {
     { id: 'replica', label: '真人复刻', desc: '反推特征后全局重绘' },
   ],
 } as const;
+
+// ─── Clothing Category Recognition (款式识别) ───
+
+export const CLOTHING_CATEGORY_PROMPT = `## 角色
+你是一个服装品类分类助手
+
+## 任务
+你的任务是描述用户输入的服装图的上身装、下身装、全身装的服装设计+版型+品类
+
+服装设计：挂脖紧身、荷叶边下摆设计、亮片装饰等
+版型：宽松、紧身、包裹感、及踝等
+品类：具体的服装品类
+
+## 品类分类逻辑
+上身装：如立领条纹长袖衬衫、编织格纹高领毛衣等
+下身装：如格纹阔腿裤子、挂链设计百褶短裙、图案宽松短裤等
+全身装：如挂脖紧身式及踝连衣裙、烫金宽肩西服套装等
+
+## 识别互斥规则
+如果识别为全身装（如挂脖紧身式及踝连衣裙），则上身装和下身装必须为空。
+如果识别为上身+下身装（如立领条纹长袖衬衫+挂链设计百褶短裙），则全身装必须为空。
+禁止同时出现上下身装和全身装。
+如果上下装服装同时涉及多个品类，需要都输出，比如上身穿着立领条纹长袖衬衫+毛绒拉链马甲，则识别的上身装应为"立领条纹长袖衬衫，毛绒拉链马甲"
+
+## 输出格式
+严格使用格式：上身装：XX；下身装：XX；全身装：XX。
+严格遵守分类规则和互斥原则，仅输出结果，无需额外解释。
+
+## 错误处理
+如果图片中无服装或未匹配用户范围内的品类，输出：
+上身装：未检索到合适品类；下身装：未检索到合适品类；全身装：未检索到合适品类`;
+
+export interface ClothingCategoryResult {
+  upper: string;
+  lower: string;
+  overall: string;
+}
+
+export function parseClothingCategoryResult(text: string): ClothingCategoryResult {
+  const sections = text.split('；');
+  const extract = (s: string) => {
+    const parts = s.split('：');
+    return parts.length > 1 ? parts.slice(1).join('：').trim() : s.trim();
+  };
+  return {
+    upper: sections[0] ? extract(sections[0]) : '',
+    lower: sections[1] ? extract(sections[1]) : '',
+    overall: sections[2] ? extract(sections[2]) : '',
+  };
+}
+
+// ─── Art Style Recognition (风格识别) ───
+
+export const ART_STYLE_DESCRIPTION_PROMPT = `# 角色定义
+您是一位资深时尚符号学分析师和计算机视觉专家。您的任务是分析时尚女装的电商图片，为向量数据库检索系统生成一个"密集风格描述"。
+
+# 背景与知识库
+参考以下视觉解码框架：
+1. **气质与氛围：** 整体穿搭造型（如果只有单品没有造型 则需精准联想出最契合单品风格特征的穿搭造型，再进行以下回答）所传达出来的一种氛围感、模特气质&态度、模特年龄感、环境滤镜感、穿搭思路的关键词（3-5个左右，每个关键词4-6个字，必须4个维度都要有关键词），注意：1-不要输出服装风格 而是要关注整体造型所传达的信息；2-除了描述造型穿搭的，其他关键词都是用来形容人的形容词。3-不要输出哪些含义宽泛模糊，过于抽象，平庸无特性的词语，如"个性表达"、"都市休闲"、"现代时尚"这类的。
+2. **色彩与图案：** 心理学、层次结构（单色/冲突色）、印花（小碎花 vs. 忧郁大花）。
+3. **轮廓与面料：** 结构（束胸、超大廓形等）、材质。
+4. **设计细节：** 领口、下摆、五金等。
+5. **环境语境：** 灯光、场景、姿势。
+6. **文化溯源：** 追根溯源文化与人文思潮的基因，包含时代坐标、地域/亚文化锚点、艺术流派及核心哲学、人物思潮等，注意不要直接讲出处于什么服装风格！要追根溯源，因为所有服装风格也是源于社会 人文 哲学 类的文化思潮。
+
+# 任务
+分析输入图片并输出结构化的描述。
+
+# 约束
+  - **杜绝填充词：** 不要使用"图片显示"、"我能看到"、"一位女士穿着"、"它看起来像"等词语。
+  - **高密度：** 使用具体的时尚术语（例如，用"泡泡袖"代替"大袖子"，用"小碎花"代替"花朵图案"）。
+  - **焦点：** **只**关注有助于特定时尚风格的视觉元素。
+  - **溯源：** 当有特别明显的时尚文化基因时才进行输出，没有则输出 "无"。
+
+# 输出格式
+以与向量嵌入兼容的单一字符串格式输出结果：
+\`气质氛围：[氛围感], [气质], [态度], [年龄感], [环境滤镜感], [穿搭思路] | 文化溯源: [起源年代/背景], [核心地域/亚文化], [艺术/哲学流派] | 视觉属性: [色调色彩], [面料肌理], [版型廓形], [造型逻辑], [关键细节], [图案], [环境氛围/灯光]\``;
+
+export const ART_STYLE_RECOGNITION_PROMPT = `<role>你是从业10年的女装服装专家，精通人文艺术风格，熟悉以下41种风格标签体系。</role>
+
+<goal>基于图片和其密集风格描述，根据下方风格定义找出最匹配的1个风格标签。</goal>
+
+<style_definitions>
+A. 经典与正装体系：经典正装 Classic Tailoring、常春藤学院 Ivy/Trad、小香风 Chanel-chic、静奢风 Quiet Luxury、权力套装 Power Dressing
+B. 制服与功能体系：工装风 Workwear/Cargo style、军旅风 Military style、海军风 Navy style、JK风 JK uniform、专业运动 Performance Sportswear、专业户外 Outdoor
+C. 城市休闲与街头体系：嘻哈风 Hip-hop style、滑板风 Skater aesthetic、西部丹宁 Western/Cowboy-core、机车骑士 Biker aesthetic、美式复古 Americana、户外山系风 Urban Outdoor Mix、松弛运动 Athflow、Y2K Original Y2K style、Mob Wife aesthetic
+D. 音乐与青年亚文化体系：摇滚朋克 Rock/Punk style、暗黑哥特 Gothic style、格兰奇 Grunge、Indie Sleaze、亚比女团风 Subculture girl group style
+E. 艺术思潮与设计观念体系：极简主义 Minimalist style、解构主义 Deconstruction aesthetic、前卫黑系 Avant-garde Black、波普艺术 Pop art aesthetic
+F. 科幻与未来叙事体系：机能风 Techwear style、未来主义 Futurism aesthetic、废土风 Post-apocalyptic aesthetic
+G. 浪漫与历史复兴体系：洛丽塔 Lolita style、芭蕾风 Balletcore style、宫廷风 Court style、波西米亚 Bohemian style、田园风 Cottagecore
+H. 地域与文化生活方式体系：南法度假 French Riviera style、热带度假 Tropical resort style、新中式 New Chinese style
+其他：不匹配以上任何风格时选择
+</style_definitions>
+
+<判断优先级>
+1. 优先判断图片的气质氛围与哪个风格最契合（最重要）
+2. 辩证分析风格下易混淆风格的关键特征
+3. 注意风格定义里排除项内容
+4. 注意图片造型里的细节是否符合风格核心定义
+</判断优先级>
+
+<output>以JSON格式输出，禁止Markdown格式，直接输出纯JSON文本：
+{"label": "风格中文名称", "reason": "分析依据，100字以内"}
+</output>`;
+
+export interface ArtStyleResult {
+  description: string;
+  label: string;
+  reason: string;
+}
+
+export function parseArtStyleResult(jsonText: string): { label: string; reason: string } {
+  try {
+    // Try to extract JSON from the text (handle markdown code blocks)
+    const jsonMatch = jsonText.match(/\{[\s\S]*?\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        label: parsed.label || parsed.style || '',
+        reason: parsed.reason || '',
+      };
+    }
+  } catch {
+    // fallback
+  }
+  return { label: jsonText.trim(), reason: '' };
+}

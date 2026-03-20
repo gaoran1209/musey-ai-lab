@@ -25,6 +25,7 @@ import { getStoredGeminiApiKey } from '../utils/geminiApiKey';
 import {
   type SkillType,
   type SkillExecuteOptions,
+  type AnalysisType,
   getSkillTitle,
   SCENE_EXTRACT_PROMPT,
   buildAtmosphereBlendPrompt,
@@ -33,6 +34,11 @@ import {
   FEATURES_EXTRACT_PROMPT,
   buildReplicaPrompt,
   buildTryonPrompt,
+  CLOTHING_CATEGORY_PROMPT,
+  parseClothingCategoryResult,
+  ART_STYLE_DESCRIPTION_PROMPT,
+  ART_STYLE_RECOGNITION_PROMPT,
+  parseArtStyleResult,
 } from '../services/skillPrompts';
 
 const nodeTypes = {
@@ -803,6 +809,123 @@ function Flow() {
     [getNode, handleGenerate, addRecord, updateRecord]
   );
 
+  const handleAnalyze = useCallback(
+    async (nodeId: string, analysisType: AnalysisType) => {
+      const node = getNode(nodeId);
+      if (!node || !node.data.imageSrc) return;
+
+      const apiKey = getStoredGeminiApiKey();
+      if (!apiKey) {
+        console.error('Missing Gemini API key');
+        return;
+      }
+
+      // Set loading state
+      setNodes((nds) =>
+        nds.map((n) =>
+          n.id === nodeId
+            ? { ...n, data: { ...n.data, analysisResult: { type: analysisType, loading: true } } }
+            : n
+        )
+      );
+
+      const ai = new GoogleGenAI({ apiKey });
+
+      try {
+        if (analysisType === 'clothing-category') {
+          const response = await ai.models.generateContent({
+            model: 'gemini-3.1-flash-preview',
+            contents: [
+              { inlineData: dataUrlToInlineData(node.data.imageSrc as string) },
+              { text: CLOTHING_CATEGORY_PROMPT },
+            ],
+          });
+          const text = response.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          const parsed = parseClothingCategoryResult(text);
+
+          setNodes((nds) =>
+            nds.map((n) =>
+              n.id === nodeId
+                ? {
+                    ...n,
+                    data: {
+                      ...n.data,
+                      analysisResult: {
+                        type: 'clothing-category',
+                        loading: false,
+                        data: parsed,
+                      },
+                    },
+                  }
+                : n
+            )
+          );
+        } else if (analysisType === 'art-style') {
+          // Step 1: Generate dense style description
+          const descResponse = await ai.models.generateContent({
+            model: 'gemini-3.1-flash-preview',
+            contents: [
+              { inlineData: dataUrlToInlineData(node.data.imageSrc as string) },
+              { text: ART_STYLE_DESCRIPTION_PROMPT },
+            ],
+          });
+          const description = descResponse.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+          // Step 2: LLM-based style recognition with description
+          const styleResponse = await ai.models.generateContent({
+            model: 'gemini-3.1-flash-preview',
+            contents: [
+              { inlineData: dataUrlToInlineData(node.data.imageSrc as string) },
+              { text: `以下是该图片的密集风格描述：\n${description}\n\n${ART_STYLE_RECOGNITION_PROMPT}` },
+            ],
+          });
+          const styleText = styleResponse.candidates?.[0]?.content?.parts?.[0]?.text || '';
+          const parsed = parseArtStyleResult(styleText);
+
+          setNodes((nds) =>
+            nds.map((n) =>
+              n.id === nodeId
+                ? {
+                    ...n,
+                    data: {
+                      ...n.data,
+                      analysisResult: {
+                        type: 'art-style',
+                        loading: false,
+                        data: { description, ...parsed },
+                      },
+                    },
+                  }
+                : n
+            )
+          );
+        }
+      } catch (error) {
+        console.error('Analysis failed:', error);
+        const errorMessage = extractErrorMessage(error);
+
+        setNodes((nds) =>
+          nds.map((n) =>
+            n.id === nodeId
+              ? {
+                  ...n,
+                  data: {
+                    ...n.data,
+                    analysisResult: {
+                      type: analysisType,
+                      loading: false,
+                      error: errorMessage,
+                    },
+                  },
+                }
+              : n
+          )
+        );
+      }
+    },
+    [getNode]
+  );
+
   const handleCreateLinkedImageNode = useCallback(
     (nodeId: string, direction: LinkedImageDirection) => {
       const currentNode = getNode(nodeId);
@@ -936,6 +1059,7 @@ function Flow() {
           referenceImages: getReferenceImages(node.id, nodes, edges),
           onCreateLinkedImageNode: handleCreateLinkedImageNode,
           onSkillExecute: handleSkillExecute,
+          onAnalyze: handleAnalyze,
           isOutputConnectorActive: activeOutputConnectorNodeId === node.id,
           isConnectionTargetMode: activeOutputConnectorNodeId !== null && activeOutputConnectorNodeId !== node.id,
           isAnyConnectionActive: activeOutputConnectorNodeId !== null,
