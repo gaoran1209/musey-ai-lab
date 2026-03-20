@@ -4,7 +4,7 @@
  */
 
 import { FlowCanvas } from './components/FlowCanvas';
-import { Sparkles, BookOpen } from 'lucide-react';
+import { Sparkles, BookOpen, ScrollText } from 'lucide-react';
 import { Sidebar } from './components/Sidebar';
 import { HistoryProvider } from './components/HistoryContext';
 
@@ -30,6 +30,16 @@ export default function App() {
               <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
               <span className="text-sm font-medium text-neutral-300">Nano Banana 2</span>
             </div>
+            <a
+              href="/docs.html#changelog"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="pointer-events-auto flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 backdrop-blur-md transition-all hover:bg-white/10 hover:border-white/20"
+              title="版本记录"
+            >
+              <ScrollText className="h-4 w-4 text-neutral-300" />
+              <span className="text-sm font-medium text-neutral-300">版本记录</span>
+            </a>
             <a
               href="/docs.html"
               target="_blank"

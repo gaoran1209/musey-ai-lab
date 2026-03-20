@@ -9,7 +9,8 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "changelog": "tsx scripts/add-changelog.ts"
+    "changelog": "tsx scripts/add-changelog.ts",
+    "postbuild": "echo 'Build complete. Run npm run changelog to add version record.'"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
