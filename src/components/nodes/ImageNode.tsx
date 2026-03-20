@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { Handle, Position, NodeProps, Node, useReactFlow } from '@xyflow/react';
-import { UploadCloud, Send, Mic, Sparkles, Layout, Image as ImageIcon, Trash2, Download, Video as VideoIcon, Clock, Sparkle, Layers3, X, Plus, Expand, UserRound, Palette, Shirt, ChevronRight, Check, ScanSearch, Brush, Loader2 } from 'lucide-react';
+import { UploadCloud, Send, Mic, Sparkles, Layout, Image as ImageIcon, Trash2, Download, Video as VideoIcon, Clock, Sparkle, Layers3, X, Plus, Expand, UserRound, Palette, Shirt, ChevronRight, Check, ScanSearch, Brush, Loader2, RefreshCw, Eye } from 'lucide-react';
 import clsx from 'clsx';
 import { createPortal } from 'react-dom';
 import { v4 as uuidv4 } from 'uuid';
@@ -66,6 +66,7 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
   const [videoDuration, setVideoDuration] = useState('4');
   const [activeSkillMenu, setActiveSkillMenu] = useState<SkillType | null>(null);
   const [skillMode, setSkillMode] = useState<string>('precise');
+  const [showAnalyzeMenu, setShowAnalyzeMenu] = useState(false);
   const [skillImages, setSkillImages] = useState<Array<{ id: string; imageSrc: string; label: string; tag?: string; fromNodeId?: string }>>([]);
   const skillUploadRef = useRef<HTMLInputElement>(null);
 
@@ -106,6 +107,7 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
       setMentionState(null);
       setActiveMentionIndex(0);
       setActiveSkillMenu(null);
+      setShowAnalyzeMenu(false);
     }
   }, [selected]);
 
@@ -530,7 +532,7 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
 
   const handleAnalyzeClick = useCallback((analysisType: AnalysisType) => (e: React.MouseEvent) => {
     e.stopPropagation();
-    setActiveSkillMenu(null);
+    setShowAnalyzeMenu(false);
     data.onAnalyze?.(id, analysisType);
   }, [data, id]);
 
@@ -650,42 +652,7 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
                 </button>
               </React.Fragment>
             ))}
-            <div className="w-px h-4 bg-white/10" />
-            <button
-              type="button"
-              onClick={handleAnalyzeClick('clothing-category')}
-              disabled={data.analysisResult?.loading}
-              className={clsx(
-                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-all whitespace-nowrap",
-                data.analysisResult?.loading && data.analysisResult.type === 'clothing-category'
-                  ? "bg-white/15 text-white"
-                  : "text-white/70 hover:bg-white/10 hover:text-white"
-              )}
-              title="款式识别"
-            >
-              {data.analysisResult?.loading && data.analysisResult.type === 'clothing-category'
-                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                : <ScanSearch className="w-3.5 h-3.5" />}
-              <span>款式识别</span>
-            </button>
-            <div className="w-px h-4 bg-white/10" />
-            <button
-              type="button"
-              onClick={handleAnalyzeClick('art-style')}
-              disabled={data.analysisResult?.loading}
-              className={clsx(
-                "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs transition-all whitespace-nowrap",
-                data.analysisResult?.loading && data.analysisResult.type === 'art-style'
-                  ? "bg-white/15 text-white"
-                  : "text-white/70 hover:bg-white/10 hover:text-white"
-              )}
-              title="风格识别"
-            >
-              {data.analysisResult?.loading && data.analysisResult.type === 'art-style'
-                ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                : <Brush className="w-3.5 h-3.5" />}
-              <span>风格识别</span>
-            </button>
+            {/* Analysis buttons removed — now on the image top-left */}
           </div>
 
           {/* Skill Panel */}
@@ -843,71 +810,6 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
         </div>
       )}
 
-      {/* Analysis Result Card */}
-      {data.analysisResult && !data.analysisResult.loading && (data.analysisResult.data || data.analysisResult.error) && (
-        <div
-          className="absolute left-[calc(100%+16px)] top-0 z-40 w-[260px] rounded-2xl border border-white/10 bg-[#1e1e22]/95 p-4 shadow-[0_18px_60px_rgba(0,0,0,0.5)] backdrop-blur-2xl"
-          onClick={(e) => e.stopPropagation()}
-        >
-          <div className="mb-2 flex items-center justify-between">
-            <span className="text-xs font-medium text-white/60">
-              {data.analysisResult.type === 'clothing-category' ? '款式识别结果' : '风格识别结果'}
-            </span>
-            <button
-              type="button"
-              onClick={handleDismissAnalysis}
-              className="flex h-5 w-5 items-center justify-center rounded-full text-white/30 hover:bg-white/10 hover:text-white transition-colors"
-            >
-              <X className="h-3 w-3" />
-            </button>
-          </div>
-
-          {data.analysisResult.error ? (
-            <p className="text-xs text-red-400">{data.analysisResult.error}</p>
-          ) : data.analysisResult.type === 'clothing-category' ? (
-            <div className="flex flex-col gap-2">
-              {[
-                { key: 'upper', label: '上身装' },
-                { key: 'lower', label: '下身装' },
-                { key: 'overall', label: '全身装' },
-              ].map((item) => {
-                const value = data.analysisResult!.data?.[item.key];
-                if (!value || value === '为空' || value === '无') return null;
-                return (
-                  <div key={item.key} className="rounded-lg bg-white/5 px-3 py-2">
-                    <div className="text-[10px] font-medium text-white/40 mb-0.5">{item.label}</div>
-                    <div className="text-xs text-white/90 leading-relaxed">{value}</div>
-                  </div>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="flex flex-col gap-2">
-              {data.analysisResult.data?.label && (
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center rounded-full bg-purple-500/20 border border-purple-400/30 px-3 py-1 text-xs font-semibold text-purple-200">
-                    {data.analysisResult.data.label}
-                  </span>
-                </div>
-              )}
-              {data.analysisResult.data?.reason && (
-                <p className="text-xs text-white/60 leading-relaxed">{data.analysisResult.data.reason}</p>
-              )}
-              {data.analysisResult.data?.description && (
-                <details className="group">
-                  <summary className="cursor-pointer text-[10px] text-white/30 hover:text-white/50 transition-colors">
-                    查看密集描述
-                  </summary>
-                  <p className="mt-1.5 text-[11px] text-white/40 leading-relaxed max-h-[120px] overflow-y-auto [scrollbar-width:thin]">
-                    {data.analysisResult.data.description}
-                  </p>
-                </details>
-              )}
-            </div>
-          )}
-        </div>
-      )}
-
       {data.isConnectionTargetMode && (
         <div className="pointer-events-none absolute -top-8 left-1/2 z-30 -translate-x-1/2 rounded-full border border-sky-300/35 bg-sky-500/12 px-3 py-1 text-[10px] font-medium tracking-[0.18em] text-sky-100 shadow-[0_10px_24px_rgba(14,165,233,0.18)] backdrop-blur-md">
           CONNECT AS REFERENCE
@@ -982,15 +884,58 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
               }}
             />
 
+            {/* Analyze button — top-left of image */}
+            {selected && !data.isLoading && (
+              <div className="absolute top-3 left-3 z-40">
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setShowAnalyzeMenu((v) => !v); }}
+                  disabled={data.analysisResult?.loading}
+                  className={clsx(
+                    "flex h-9 w-9 items-center justify-center rounded-full border border-white/12 bg-black/45 text-white shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-md transition-all hover:scale-[1.03] hover:bg-black/60",
+                    showAnalyzeMenu && "bg-white/20"
+                  )}
+                  title="识别"
+                >
+                  {data.analysisResult?.loading
+                    ? <Loader2 className="h-4 w-4 animate-spin" />
+                    : <Eye className="h-4 w-4" />}
+                </button>
+                {showAnalyzeMenu && (
+                  <div
+                    className="absolute left-0 top-[calc(100%+6px)] z-50 min-w-[130px] overflow-hidden rounded-xl border border-white/10 bg-[#222226]/95 p-1 shadow-[0_14px_40px_rgba(0,0,0,0.5)] backdrop-blur-2xl"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      type="button"
+                      onClick={handleAnalyzeClick('clothing-category')}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/80 transition-colors hover:bg-white/10"
+                    >
+                      <ScanSearch className="h-3.5 w-3.5 text-white/50" />
+                      款式识别
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAnalyzeClick('art-style')}
+                      className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs text-white/80 transition-colors hover:bg-white/10"
+                    >
+                      <Brush className="h-3.5 w-3.5 text-white/50" />
+                      风格识别
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Image action buttons — bottom-right */}
             {selected && !data.isLoading && (
               <div className="absolute bottom-3 right-3 z-40 flex items-center gap-2">
                 <label
-                  className="flex h-10 cursor-pointer items-center gap-2 rounded-full border border-white/12 bg-black/45 px-3 text-sm text-white shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-md transition-all hover:scale-[1.03] hover:bg-black/60"
+                  className="flex h-10 w-10 cursor-pointer items-center justify-center rounded-full border border-white/12 bg-black/45 text-white shadow-[0_10px_30px_rgba(0,0,0,0.28)] backdrop-blur-md transition-all hover:scale-[1.03] hover:bg-black/60"
                   title="替换图像"
                   onClick={(e) => e.stopPropagation()}
                 >
-                  <UploadCloud className="h-4 w-4" />
-                  <span>替换</span>
+                  <RefreshCw className="h-4 w-4" />
                   <input
                     type="file"
                     className="hidden"
@@ -1053,6 +998,49 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
         ) : null}
       </div>
 
+      {/* Persistent Analysis Result — below image */}
+      {data.analysisResult?.data && !data.analysisResult?.loading && (
+        <div className="mt-2 w-full px-1">
+          {data.analysisResult.type === 'clothing-category' ? (
+            <div className="flex flex-wrap gap-1.5">
+              <span className="inline-flex items-center gap-1 rounded-full bg-sky-500/15 px-2.5 py-1 text-[11px] font-medium text-sky-300 border border-sky-400/20">
+                <ScanSearch className="h-3 w-3" />
+                款式
+              </span>
+              <span className="inline-flex items-center rounded-full bg-white/8 px-2.5 py-1 text-[11px] text-white/80 border border-white/10">
+                {typeof data.analysisResult.data === 'string'
+                  ? data.analysisResult.data
+                  : data.analysisResult.data?.category || data.analysisResult.data?.label || JSON.stringify(data.analysisResult.data)}
+              </span>
+            </div>
+          ) : data.analysisResult.type === 'art-style' ? (
+            <div className="flex flex-col gap-1.5">
+              <div className="flex items-center gap-1.5">
+                <span className="inline-flex items-center gap-1 rounded-full bg-purple-500/15 px-2.5 py-1 text-[11px] font-medium text-purple-300 border border-purple-400/20">
+                  <Brush className="h-3 w-3" />
+                  风格
+                </span>
+                <span className="inline-flex items-center rounded-full bg-white/8 px-2.5 py-1 text-[11px] font-semibold text-white/90 border border-white/10">
+                  {data.analysisResult.data?.label || data.analysisResult.data?.style || ''}
+                </span>
+              </div>
+              {(data.analysisResult.data?.reason) && (
+                <p className="text-[10px] leading-relaxed text-white/50 px-1 line-clamp-2">
+                  {data.analysisResult.data.reason}
+                </p>
+              )}
+            </div>
+          ) : null}
+        </div>
+      )}
+      {data.analysisResult?.error && (
+        <div className="mt-2 w-full px-1">
+          <span className="inline-flex items-center gap-1 rounded-full bg-red-500/15 px-2.5 py-1 text-[11px] text-red-300 border border-red-400/20">
+            识别失败: {data.analysisResult.error}
+          </span>
+        </div>
+      )}
+
       {/* Floating Input Panel */}
       {selected && (
         <div
@@ -1078,6 +1066,32 @@ export function ImageNode({ id, data, selected }: NodeProps<ImageNodeType>) {
                       />
                       <span className="pr-2 text-xs font-medium text-white">{reference.label}</span>
                     </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Preset prompt suggestions */}
+              {!prompt.trim() && (
+                <div className="mb-3 flex flex-wrap gap-1.5">
+                  {[
+                    '一位亚洲女性穿着这件衣服走在街头',
+                    '白色背景的电商产品图',
+                    '模特在咖啡厅的氛围感写真',
+                    '极简风格的杂志大片',
+                    '户外自然光下的穿搭展示',
+                  ].map((suggestion) => (
+                    <button
+                      key={suggestion}
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPrompt(suggestion);
+                        inputRef.current?.focus();
+                      }}
+                      className="rounded-full border border-white/8 bg-white/5 px-3 py-1.5 text-[11px] text-white/50 transition-colors hover:border-white/16 hover:bg-white/10 hover:text-white/80"
+                    >
+                      {suggestion}
+                    </button>
                   ))}
                 </div>
               )}
